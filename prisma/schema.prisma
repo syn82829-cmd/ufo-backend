@@ -11,5 +11,17 @@ model User {
   id         BigInt   @id
   username   String?
   balance    Int      @default(0)
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
+
+  transactions Transaction[]
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  userId    BigInt
+  amount    Int
+  type      String   // deposit | withdraw | case_open
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
