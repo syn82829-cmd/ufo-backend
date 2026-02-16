@@ -10,3 +10,4 @@ const PORT = 3000
 console.log("Server started on port " + PORT); 
 });
 
+npm install prisma @prisma/client
