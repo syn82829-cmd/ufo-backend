@@ -8,20 +8,21 @@ datasource db {
 }
 
 model User {
-  id         BigInt   @id
-  username   String?
-  balance    Int      @default(0)
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  telegram_id BigInt   @unique
+  username    String?
+  balance     Int      @default(0)
+  created_at  DateTime @default(now())
 
   transactions Transaction[]
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  userId    BigInt
-  amount    Int
-  type      String   // deposit | withdraw | case_open
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  user_id    String
+  amount     Int
+  type       String   // deposit | withdraw | case
+  created_at DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [user_id], references: [id])
 }
