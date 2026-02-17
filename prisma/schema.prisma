@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TransactionType {
+  deposit
+  withdraw
+  case
+}
+
 model User {
   id          String   @id @default(uuid())
   telegram_id BigInt   @unique
@@ -18,11 +24,13 @@ model User {
 }
 
 model Transaction {
-  id         String   @id @default(uuid())
-  user_id    String
+  id         String           @id @default(uuid())
+  userId     String
   amount     Int
-  type       String   // deposit | withdraw | case
-  created_at DateTime @default(now())
+  type       TransactionType
+  created_at DateTime         @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
