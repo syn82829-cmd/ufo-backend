@@ -11,43 +11,57 @@ app.get("/", (req, res) => {
 });
 
 
-// создать или получить пользователя
+// CREATE OR GET USER
 app.post("/user", async (req, res) => {
   try {
+
     const { id, username } = req.body;
 
+    console.log("Incoming TG user:", id, username);
+
     let user = await prisma.user.findUnique({
-      where: { id: BigInt(id) }
+      where: {
+        telegram_id: BigInt(id)
+      }
     });
 
     if (!user) {
       user = await prisma.user.create({
         data: {
-          id: BigInt(id),
-          username,
-          balance: 0
+          telegram_id: BigInt(id),
+          username: username || null
         }
       });
+
+      console.log("User created in DB");
+    } else {
+      console.log("User already exists");
     }
 
     res.json({
-      id: user.id.toString(),
+      id: user.id,
+      telegram_id: user.telegram_id.toString(),
       username: user.username,
       balance: user.balance
     });
 
   } catch (error) {
-    console.error(error);
+
+    console.error("POST /user error:", error);
     res.status(500).json({ error: "error creating user" });
+
   }
 });
 
 
-// получить баланс
-app.get("/balance/:id", async (req, res) => {
+// GET BALANCE
+app.get("/balance/:telegramId", async (req, res) => {
   try {
+
     const user = await prisma.user.findUnique({
-      where: { id: BigInt(req.params.id) }
+      where: {
+        telegram_id: BigInt(req.params.telegramId)
+      }
     });
 
     if (!user) {
@@ -57,10 +71,12 @@ app.get("/balance/:id", async (req, res) => {
     res.json({ balance: user.balance });
 
   } catch (error) {
+
+    console.error("GET balance error:", error);
     res.status(500).json({ error: "error" });
+
   }
 });
-
 
 const PORT = process.env.PORT || 3000;
 
