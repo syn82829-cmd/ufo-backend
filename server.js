@@ -24,8 +24,6 @@ app.post("/user", async (req, res) => {
   try {
     const { id, username } = req.body;
 
-    console.log("Incoming TG user:", id, username);
-
     let user = await prisma.user.findUnique({
       where: { telegram_id: BigInt(id) }
     });
@@ -38,10 +36,6 @@ app.post("/user", async (req, res) => {
           balance: 0
         }
       });
-
-      console.log("User created");
-    } else {
-      console.log("User exists");
     }
 
     res.json({
@@ -95,23 +89,19 @@ app.post("/deposit", async (req, res) => {
         where: { telegram_id: BigInt(telegram_id) }
       });
 
-      if (!user) {
-        throw new Error("User not found");
-      }
+      if (!user) throw new Error("User not found");
 
       const updatedUser = await tx.user.update({
         where: { id: user.id },
         data: {
-          balance: {
-            increment: amount
-          }
+          balance: { increment: amount }
         }
       });
 
       await tx.transaction.create({
         data: {
           userId: user.id,
-          amount: amount,
+          amount,
           type: "deposit"
         }
       });
@@ -119,13 +109,85 @@ app.post("/deposit", async (req, res) => {
       return updatedUser;
     });
 
-    res.json({
-      balance: result.balance
-    });
+    res.json({ balance: result.balance });
 
   } catch (error) {
     console.error("DEPOSIT ERROR:", error);
-    res.status(500).json({ error: "deposit error" });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/* ============================= */
+/* WITHDRAW */
+/* ============================= */
+
+app.post("/withdraw", async (req, res) => {
+  try {
+    const { telegram_id, amount } = req.body;
+
+    if (!telegram_id || !amount || amount <= 0) {
+      return res.status(400).json({ error: "invalid data" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+
+      const user = await tx.user.findUnique({
+        where: { telegram_id: BigInt(telegram_id) }
+      });
+
+      if (!user) throw new Error("User not found");
+      if (user.balance < amount) throw new Error("Insufficient balance");
+
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          balance: { decrement: amount }
+        }
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId: user.id,
+          amount,
+          type: "withdraw"
+        }
+      });
+
+      return updatedUser;
+    });
+
+    res.json({ balance: result.balance });
+
+  } catch (error) {
+    console.error("WITHDRAW ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/* ============================= */
+/* TRANSACTIONS HISTORY */
+/* ============================= */
+
+app.get("/transactions/:telegram_id", async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { telegram_id: BigInt(req.params.telegram_id) },
+      include: {
+        transactions: {
+          orderBy: { created_at: "desc" }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "user not found" });
+    }
+
+    res.json(user.transactions);
+
+  } catch (error) {
+    console.error("TRANSACTIONS ERROR:", error);
+    res.status(500).json({ error: "transactions error" });
   }
 });
 
