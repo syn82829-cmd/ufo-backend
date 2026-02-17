@@ -16,7 +16,10 @@ app.get("/", (req, res) => {
   res.send("Backend works");
 });
 
-// СОЗДАТЬ ИЛИ ПОЛУЧИТЬ USER
+/* ============================= */
+/* СОЗДАТЬ ИЛИ ПОЛУЧИТЬ USER */
+/* ============================= */
+
 app.post("/user", async (req, res) => {
   try {
     const { id, username } = req.body;
@@ -54,7 +57,10 @@ app.post("/user", async (req, res) => {
   }
 });
 
-// БАЛАНС
+/* ============================= */
+/* ПОЛУЧИТЬ БАЛАНС */
+/* ============================= */
+
 app.get("/balance/:id", async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -70,6 +76,60 @@ app.get("/balance/:id", async (req, res) => {
     res.status(500).json({ error: "balance error" });
   }
 });
+
+/* ============================= */
+/* DEPOSIT */
+/* ============================= */
+
+app.post("/deposit", async (req, res) => {
+  try {
+    const { telegram_id, amount } = req.body;
+
+    if (!telegram_id || !amount || amount <= 0) {
+      return res.status(400).json({ error: "invalid data" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+
+      const user = await tx.user.findUnique({
+        where: { telegram_id: BigInt(telegram_id) }
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          balance: {
+            increment: amount
+          }
+        }
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId: user.id,
+          amount: amount,
+          type: "deposit"
+        }
+      });
+
+      return updatedUser;
+    });
+
+    res.json({
+      balance: result.balance
+    });
+
+  } catch (error) {
+    console.error("DEPOSIT ERROR:", error);
+    res.status(500).json({ error: "deposit error" });
+  }
+});
+
+/* ============================= */
 
 const PORT = process.env.PORT || 3000;
 
