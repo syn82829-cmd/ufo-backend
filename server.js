@@ -11,23 +11,14 @@ app.use(cors({
 }));
 
 app.use(express.json());
-const express = require("express");
-const { PrismaClient } = require("@prisma/client");
-
-const app = express();
-const prisma = new PrismaClient();
-
-app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Backend works");
 });
 
-
 // СОЗДАТЬ ИЛИ ПОЛУЧИТЬ USER
 app.post("/user", async (req, res) => {
   try {
-
     const { id, username } = req.body;
 
     console.log("Incoming TG user:", id, username);
@@ -58,18 +49,14 @@ app.post("/user", async (req, res) => {
     });
 
   } catch (error) {
-
     console.error("USER ERROR:", error);
     res.status(500).json({ error: "user error" });
-
   }
 });
-
 
 // БАЛАНС
 app.get("/balance/:id", async (req, res) => {
   try {
-
     const user = await prisma.user.findUnique({
       where: { telegram_id: BigInt(req.params.id) }
     });
@@ -79,10 +66,8 @@ app.get("/balance/:id", async (req, res) => {
     res.json({ balance: user.balance });
 
   } catch (error) {
-
     console.error("BALANCE ERROR:", error);
     res.status(500).json({ error: "balance error" });
-
   }
 });
 
