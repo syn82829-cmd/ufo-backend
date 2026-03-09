@@ -11,26 +11,49 @@ enum TransactionType {
   deposit
   withdraw
   case
+  sale
 }
 
 model User {
-  id          String   @id @default(uuid())
-  telegram_id BigInt   @unique
-  username    String?
-  balance     Int      @default(0)
-  created_at  DateTime @default(now())
+  id           String          @id @default(uuid())
+  telegram_id  BigInt          @unique
+  username     String?
+  balance      Int             @default(0)
+  created_at   DateTime        @default(now())
 
   transactions Transaction[]
+  inventory    InventoryItem[]
 }
 
 model Transaction {
-  id         String           @id @default(uuid())
-  userId     String
-  amount     Int
-  type       TransactionType
-  created_at DateTime         @default(now())
+  id          String           @id @default(uuid())
+  userId      String
+  amount      Int
+  type        TransactionType
+  created_at  DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model InventoryItem {
+  id            String   @id @default(uuid())
+  userId        String
+  dropId        String
+  dropName      String
+  caseId        String
+  priceStars    Int
+  priceGems     String?
+  png           String
+  lottie        String?
+  obtained_at   DateTime @default(now())
+  isSold        Boolean  @default(false)
+  sold_at       DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([dropId])
+  @@index([caseId])
 }
