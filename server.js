@@ -741,8 +741,8 @@ app.get("/crash/state", async (req, res) => {
       myBet,
     });
   } catch (error) {
-    console.error("CRASH STATE ERROR:", error);
-    res.status(500).json({ error: "crash state error" });
+  console.error("CRASH STATE ERROR:", error);
+  res.status(500).json({ error: error.message || "crash state error" });
   }
 });
 
@@ -789,8 +789,8 @@ app.get("/crash/live", async (req, res) => {
 
     res.json(live);
   } catch (error) {
-    console.error("CRASH LIVE ERROR:", error);
-    res.status(500).json({ error: "crash live error" });
+  console.error("CRASH LIVE ERROR:", error);
+  res.status(500).json({ error: error.message || "crash live error" });
   }
 });
 
