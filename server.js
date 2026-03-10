@@ -182,6 +182,186 @@ function pickWeightedDrop(drops) {
 }
 
 /* ============================= */
+/* CRASH ENGINE */
+/* ============================= */
+
+const CRASH_WAITING_MS = 5000;
+const CRASH_CRASHED_MS = 1200;
+
+function getRandomCrashPoint() {
+  const roll = Math.random();
+
+  if (roll < 0.35) return +(1.1 + Math.random() * 0.8).toFixed(2);
+  if (roll < 0.7) return +(1.9 + Math.random() * 1.6).toFixed(2);
+  if (roll < 0.9) return +(3.5 + Math.random() * 4.5).toFixed(2);
+
+  return +(8 + Math.random() * 12).toFixed(2);
+}
+
+function getCrashMultiplierByElapsedMs(elapsedMs) {
+  const elapsed = elapsedMs / 1000;
+  return +(1 + elapsed * 0.85 + elapsed * elapsed * 0.12).toFixed(2);
+}
+
+function getNow() {
+  return new Date();
+}
+
+function getMsLeft(targetDate) {
+  return Math.max(0, targetDate.getTime() - Date.now());
+}
+
+async function getLatestCrashRound(db = prisma) {
+  return db.crashRound.findFirst({
+    orderBy: { round_number: "desc" },
+  });
+}
+
+async function createCrashWaitingRound(roundNumber, db = prisma) {
+  return db.crashRound.create({
+    data: {
+      round_number: roundNumber,
+      status: "waiting",
+      countdown_started_at: getNow(),
+      current_multiplier: 1.0,
+    },
+  });
+}
+
+async function markActiveCrashBetsLost(roundId, db = prisma) {
+  await db.crashBet.updateMany({
+    where: {
+      roundId,
+      status: "active",
+    },
+    data: {
+      status: "lost",
+    },
+  });
+}
+
+async function syncCrashState() {
+  let round = await getLatestCrashRound();
+
+  if (!round) {
+    return createCrashWaitingRound(1);
+  }
+
+  if (round.status === "waiting") {
+    const waitingEndsAt = new Date(round.countdown_started_at.getTime() + CRASH_WAITING_MS);
+
+    if (Date.now() >= waitingEndsAt.getTime()) {
+      round = await prisma.crashRound.update({
+        where: { id: round.id },
+        data: {
+          status: "flying",
+          flying_started_at: getNow(),
+          crash_point: getRandomCrashPoint(),
+          current_multiplier: 1.0,
+        },
+      });
+    }
+
+    return round;
+  }
+
+  if (round.status === "flying") {
+    const elapsedMs = Date.now() - round.flying_started_at.getTime();
+    const liveMultiplier = getCrashMultiplierByElapsedMs(elapsedMs);
+
+    if (liveMultiplier >= Number(round.crash_point || 1)) {
+      await prisma.$transaction(async (tx) => {
+        await tx.crashRound.update({
+          where: { id: round.id },
+          data: {
+            status: "crashed",
+            crashed_at: getNow(),
+            current_multiplier: Number(round.crash_point || 1),
+            is_settled: true,
+          },
+        });
+
+        await markActiveCrashBetsLost(round.id, tx);
+      });
+
+      round = await prisma.crashRound.findUnique({
+        where: { id: round.id },
+      });
+    }
+
+    return round;
+  }
+
+  if (round.status === "crashed") {
+    const crashedEndsAt = new Date(round.crashed_at.getTime() + CRASH_CRASHED_MS);
+
+    if (Date.now() >= crashedEndsAt.getTime()) {
+      return createCrashWaitingRound(round.round_number + 1);
+    }
+
+    return round;
+  }
+
+  return round;
+}
+
+function buildCrashState(round) {
+  if (!round) {
+    return {
+      status: "waiting",
+      roundId: null,
+      roundNumber: 0,
+      multiplier: 1.0,
+      countdown: 5,
+      crashPoint: null,
+    };
+  }
+
+  if (round.status === "waiting") {
+    const waitingEndsAt = new Date(round.countdown_started_at.getTime() + CRASH_WAITING_MS);
+
+    return {
+      status: "waiting",
+      roundId: round.id,
+      roundNumber: round.round_number,
+      multiplier: 1.0,
+      countdown: Math.max(0, Math.ceil(getMsLeft(waitingEndsAt) / 1000)),
+      crashPoint: null,
+    };
+  }
+
+  if (round.status === "flying") {
+    const elapsedMs = Date.now() - round.flying_started_at.getTime();
+    const multiplier = getCrashMultiplierByElapsedMs(elapsedMs);
+
+    return {
+      status: "flying",
+      roundId: round.id,
+      roundNumber: round.round_number,
+      multiplier,
+      countdown: null,
+      crashPoint: null,
+    };
+  }
+
+  return {
+    status: "crashed",
+    roundId: round.id,
+    roundNumber: round.round_number,
+    multiplier: Number(round.crash_point || round.current_multiplier || 1),
+    countdown: null,
+    crashPoint: Number(round.crash_point || round.current_multiplier || 1),
+  };
+}
+
+/* держим раунды живыми автоматически */
+setInterval(() => {
+  syncCrashState().catch((error) => {
+    console.error("CRASH SYNC ERROR:", error);
+  });
+}, 1000);
+
+/* ============================= */
 /* СОЗДАТЬ ИЛИ ПОЛУЧИТЬ USER */
 /* ============================= */
 
@@ -201,38 +381,26 @@ app.post("/user", async (req, res) => {
           balance: 0
         }
       });
+    } else if (username && user.username !== username) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { username }
+      });
     }
 
     res.json({
       id: user.id,
       telegram_id: user.telegram_id.toString(),
       username: user.username,
-      balance: user.balance
+      balance: user.balance,
+      casesOpened: user.cases_opened ?? 0,
+      crashGamesPlayed: user.crash_games ?? 0,
+      crashWins: user.crash_wins ?? 0,
     });
 
   } catch (error) {
     console.error("USER ERROR:", error);
     res.status(500).json({ error: "user error" });
-  }
-});
-
-/* ============================= */
-/* ПОЛУЧИТЬ БАЛАНС */
-/* ============================= */
-
-app.get("/balance/:id", async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { telegram_id: BigInt(req.params.id) }
-    });
-
-    if (!user) return res.json({ balance: 0 });
-
-    res.json({ balance: user.balance });
-
-  } catch (error) {
-    console.error("BALANCE ERROR:", error);
-    res.status(500).json({ error: "balance error" });
   }
 });
 
@@ -257,11 +425,12 @@ app.post("/deposit", async (req, res) => {
       if (!user) throw new Error("User not found");
 
       const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          balance: { increment: amount }
-        }
-      });
+  where: { id: user.id },
+  data: {
+    balance: { decrement: caseConfig.price },
+    cases_opened: { increment: 1 }
+  }
+});
 
       await tx.transaction.create({
         data: {
@@ -536,6 +705,252 @@ app.get("/transactions/:telegram_id", async (req, res) => {
   } catch (error) {
     console.error("TRANSACTIONS ERROR:", error);
     res.status(500).json({ error: "transactions error" });
+  }
+});
+
+/* ============================= */
+/* CRASH STATE */
+/* ============================= */
+
+app.get("/crash/state", async (req, res) => {
+  try {
+    const { telegram_id } = req.query;
+
+    const round = await syncCrashState();
+    const state = buildCrashState(round);
+
+    let myBet = null;
+
+    if (telegram_id && round?.id) {
+      const user = await prisma.user.findUnique({
+        where: { telegram_id: BigInt(telegram_id) }
+      });
+
+      if (user) {
+        myBet = await prisma.crashBet.findFirst({
+          where: {
+            roundId: round.id,
+            userId: user.id,
+          }
+        });
+      }
+    }
+
+    res.json({
+      ...state,
+      myBet,
+    });
+  } catch (error) {
+    console.error("CRASH STATE ERROR:", error);
+    res.status(500).json({ error: "crash state error" });
+  }
+});
+
+/* ============================= */
+/* CRASH LIVE BETS */
+/* ============================= */
+
+app.get("/crash/live", async (req, res) => {
+  try {
+    const round = await syncCrashState();
+    if (!round?.id) {
+      return res.json([]);
+    }
+
+    const bets = await prisma.crashBet.findMany({
+      where: {
+        roundId: round.id,
+      },
+      orderBy: {
+        created_at: "desc"
+      },
+      include: {
+        user: true,
+      }
+    });
+
+    const live = bets.map((bet) => ({
+      id: bet.id,
+      amount: bet.amount,
+      status: bet.status,
+      cashout_multiplier: bet.cashout_multiplier,
+      payout: bet.payout,
+      profit: bet.profit,
+      created_at: bet.created_at,
+      user: {
+        id: bet.user.id,
+        telegram_id: bet.user.telegram_id.toString(),
+        username: bet.user.username,
+        casesOpened: bet.user.cases_opened ?? 0,
+        crashGamesPlayed: bet.user.crash_games ?? 0,
+        crashWins: bet.user.crash_wins ?? 0,
+      }
+    }));
+
+    res.json(live);
+  } catch (error) {
+    console.error("CRASH LIVE ERROR:", error);
+    res.status(500).json({ error: "crash live error" });
+  }
+});
+
+/* ============================= */
+/* CRASH PLACE BET */
+/* ============================= */
+
+app.post("/crash/bet", async (req, res) => {
+  try {
+    const { telegram_id, amount } = req.body;
+
+    if (!telegram_id || !amount || Number(amount) <= 0) {
+      return res.status(400).json({ error: "telegram_id and valid amount are required" });
+    }
+
+    const round = await syncCrashState();
+
+    if (!round || round.status !== "waiting") {
+      return res.status(400).json({ error: "betting is closed" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { telegram_id: BigInt(telegram_id) }
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      if (user.balance < Number(amount)) {
+        throw new Error("Insufficient balance");
+      }
+
+      const existingBet = await tx.crashBet.findFirst({
+        where: {
+          roundId: round.id,
+          userId: user.id,
+        }
+      });
+
+      if (existingBet) {
+        throw new Error("Bet already placed for this round");
+      }
+
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          balance: { decrement: Number(amount) },
+          crash_games: { increment: 1 },
+        }
+      });
+
+      const bet = await tx.crashBet.create({
+        data: {
+          roundId: round.id,
+          userId: user.id,
+          amount: Number(amount),
+          status: "active",
+        }
+      });
+
+      return { updatedUser, bet };
+    });
+
+    res.json({
+      balance: result.updatedUser.balance,
+      bet: result.bet,
+      roundId: round.id,
+      roundNumber: round.round_number,
+    });
+
+  } catch (error) {
+    console.error("CRASH BET ERROR:", error);
+    res.status(500).json({ error: error.message || "crash bet error" });
+  }
+});
+
+/* ============================= */
+/* CRASH CASHOUT */
+/* ============================= */
+
+app.post("/crash/cashout", async (req, res) => {
+  try {
+    const { telegram_id } = req.body;
+
+    if (!telegram_id) {
+      return res.status(400).json({ error: "telegram_id is required" });
+    }
+
+    const round = await syncCrashState();
+
+    if (!round || round.status !== "flying") {
+      return res.status(400).json({ error: "cashout is not available now" });
+    }
+
+    const elapsedMs = Date.now() - round.flying_started_at.getTime();
+    const liveMultiplier = getCrashMultiplierByElapsedMs(elapsedMs);
+
+    if (liveMultiplier >= Number(round.crash_point || 1)) {
+      return res.status(400).json({ error: "too late to cash out" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { telegram_id: BigInt(telegram_id) }
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const bet = await tx.crashBet.findFirst({
+        where: {
+          roundId: round.id,
+          userId: user.id,
+          status: "active",
+        }
+      });
+
+      if (!bet) {
+        throw new Error("Active bet not found");
+      }
+
+      const payout = Math.floor(Number(bet.amount) * liveMultiplier);
+      const profit = Math.max(payout - Number(bet.amount), 0);
+
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          balance: { increment: payout },
+          crash_wins: { increment: 1 },
+        }
+      });
+
+      const updatedBet = await tx.crashBet.update({
+        where: { id: bet.id },
+        data: {
+          status: "cashed_out",
+          cashout_multiplier: liveMultiplier,
+          payout,
+          profit,
+          cashed_out_at: getNow(),
+        }
+      });
+
+      return { updatedUser, updatedBet, payout, profit };
+    });
+
+    res.json({
+      balance: result.updatedUser.balance,
+      payout: result.payout,
+      profit: result.profit,
+      multiplier: liveMultiplier,
+      bet: result.updatedBet,
+    });
+
+  } catch (error) {
+    console.error("CRASH CASHOUT ERROR:", error);
+    res.status(500).json({ error: error.message || "crash cashout error" });
   }
 });
 
