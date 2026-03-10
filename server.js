@@ -322,6 +322,8 @@ async function syncCrashState() {
 }
 
 function buildCrashState(round) {
+  const serverTime = new Date().toISOString();
+
   if (!round) {
     return {
       status: "waiting",
@@ -330,6 +332,10 @@ function buildCrashState(round) {
       multiplier: 1.0,
       countdown: 5,
       crashPoint: null,
+      serverTime,
+      countdownStartedAt: null,
+      flyingStartedAt: null,
+      crashedAt: null,
     };
   }
 
@@ -343,6 +349,10 @@ function buildCrashState(round) {
       multiplier: 1.0,
       countdown: Math.max(0, Math.ceil(getMsLeft(waitingEndsAt) / 1000)),
       crashPoint: null,
+      serverTime,
+      countdownStartedAt: round.countdown_started_at?.toISOString() || null,
+      flyingStartedAt: null,
+      crashedAt: null,
     };
   }
 
@@ -357,6 +367,10 @@ function buildCrashState(round) {
       multiplier,
       countdown: null,
       crashPoint: null,
+      serverTime,
+      countdownStartedAt: round.countdown_started_at?.toISOString() || null,
+      flyingStartedAt: round.flying_started_at?.toISOString() || null,
+      crashedAt: null,
     };
   }
 
@@ -367,6 +381,10 @@ function buildCrashState(round) {
     multiplier: Number(round.crash_point || round.current_multiplier || 1),
     countdown: null,
     crashPoint: Number(round.crash_point || round.current_multiplier || 1),
+    serverTime,
+    countdownStartedAt: round.countdown_started_at?.toISOString() || null,
+    flyingStartedAt: round.flying_started_at?.toISOString() || null,
+    crashedAt: round.crashed_at?.toISOString() || null,
   };
 }
 
