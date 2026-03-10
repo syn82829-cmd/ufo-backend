@@ -188,6 +188,8 @@ function pickWeightedDrop(drops) {
 const CRASH_WAITING_MS = 5000;
 const CRASH_CRASHED_MS = 1200;
 
+let crashSyncPromise = null;
+
 function getRandomCrashPoint() {
   const roll = Math.random();
 
@@ -240,7 +242,7 @@ async function markActiveCrashBetsLost(roundId, db = prisma) {
   });
 }
 
-async function syncCrashState() {
+async function syncCrashStateInternal() {
   let round = await getLatestCrashRound();
 
   if (!round) {
@@ -270,19 +272,17 @@ async function syncCrashState() {
     const liveMultiplier = getCrashMultiplierByElapsedMs(elapsedMs);
 
     if (liveMultiplier >= Number(round.crash_point || 1)) {
-      await prisma.$transaction(async (tx) => {
-        await tx.crashRound.update({
-          where: { id: round.id },
-          data: {
-            status: "crashed",
-            crashed_at: getNow(),
-            current_multiplier: Number(round.crash_point || 1),
-            is_settled: true,
-          },
-        });
-
-        await markActiveCrashBetsLost(round.id, tx);
+      await prisma.crashRound.update({
+        where: { id: round.id },
+        data: {
+          status: "crashed",
+          crashed_at: getNow(),
+          current_multiplier: Number(round.crash_point || 1),
+          is_settled: true,
+        },
       });
+
+      await markActiveCrashBetsLost(round.id);
 
       round = await prisma.crashRound.findUnique({
         where: { id: round.id },
@@ -303,6 +303,22 @@ async function syncCrashState() {
   }
 
   return round;
+}
+
+async function syncCrashState() {
+  if (crashSyncPromise) {
+    return crashSyncPromise;
+  }
+
+  crashSyncPromise = (async () => {
+    try {
+      return await syncCrashStateInternal();
+    } finally {
+      crashSyncPromise = null;
+    }
+  })();
+
+  return crashSyncPromise;
 }
 
 function buildCrashState(round) {
@@ -355,10 +371,12 @@ function buildCrashState(round) {
 }
 
 /* держим раунды живыми автоматически */
-setInterval(() => {
-  syncCrashState().catch((error) => {
+setInterval(async () => {
+  try {
+    await syncCrashState();
+  } catch (error) {
     console.error("CRASH SYNC ERROR:", error);
-  });
+  }
 }, 1000);
 
 /* ============================= */
