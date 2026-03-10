@@ -14,15 +14,32 @@ enum TransactionType {
   sale
 }
 
-model User {
-  id           String          @id @default(uuid())
-  telegram_id  BigInt          @unique
-  username     String?
-  balance      Int             @default(0)
-  created_at   DateTime        @default(now())
+enum CrashRoundStatus {
+  waiting
+  flying
+  crashed
+}
 
-  transactions Transaction[]
-  inventory    InventoryItem[]
+enum CrashBetStatus {
+  active
+  cashed_out
+  lost
+}
+
+model User {
+  id               String          @id @default(uuid())
+  telegram_id      BigInt          @unique
+  username         String?
+  balance          Int             @default(0)
+  created_at       DateTime        @default(now())
+
+  cases_opened     Int             @default(0)
+  crash_games      Int             @default(0)
+  crash_wins       Int             @default(0)
+
+  transactions     Transaction[]
+  inventory        InventoryItem[]
+  crashBets        CrashBet[]
 }
 
 model Transaction {
@@ -56,4 +73,51 @@ model InventoryItem {
   @@index([userId])
   @@index([dropId])
   @@index([caseId])
+}
+
+model CrashRound {
+  id                 String            @id @default(uuid())
+  status             CrashRoundStatus  @default(waiting)
+
+  round_number       Int               @unique
+
+  countdown_started_at DateTime?
+  flying_started_at  DateTime?
+  crashed_at         DateTime?
+
+  crash_point        Float?
+  current_multiplier Float             @default(1.0)
+
+  is_settled         Boolean           @default(false)
+
+  created_at         DateTime          @default(now())
+
+  bets               CrashBet[]
+
+  @@index([status])
+  @@index([created_at])
+}
+
+model CrashBet {
+  id                 String          @id @default(uuid())
+  roundId            String
+  userId             String
+
+  amount             Int
+  status             CrashBetStatus  @default(active)
+
+  cashout_multiplier Float?
+  payout             Int?
+  profit             Int?
+
+  created_at         DateTime        @default(now())
+  cashed_out_at      DateTime?
+
+  round              CrashRound      @relation(fields: [roundId], references: [id])
+  user               User            @relation(fields: [userId], references: [id])
+
+  @@index([roundId])
+  @@index([userId])
+  @@index([status])
+  @@unique([roundId, userId])
 }
