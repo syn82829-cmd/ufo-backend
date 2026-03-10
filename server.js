@@ -427,8 +427,7 @@ app.post("/deposit", async (req, res) => {
       const updatedUser = await tx.user.update({
   where: { id: user.id },
   data: {
-    balance: { decrement: caseConfig.price },
-    cases_opened: { increment: 1 }
+    balance: { increment: amount }
   }
 });
 
@@ -534,11 +533,12 @@ app.post("/case/open", async (req, res) => {
       }
 
       const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          balance: { decrement: caseConfig.price }
-        }
-      });
+  where: { id: user.id },
+  data: {
+    balance: { decrement: caseConfig.price },
+    cases_opened: { increment: 1 }
+  }
+});
 
       const inventoryItem = await tx.inventoryItem.create({
         data: {
