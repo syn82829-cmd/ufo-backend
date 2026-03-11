@@ -15,6 +15,13 @@ app.use(cors({
 
 app.use(express.json());
 
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
 app.get("/", (req, res) => {
   res.send("Backend works");
 });
