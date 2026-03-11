@@ -67,6 +67,20 @@ async function emitCrashState() {
   }
 }
 
+/* ============================= */
+/* SOCKET CONNECTION */
+/* ============================= */
+
+io.on("connection", async (socket) => {
+  console.log("Socket connected:", socket.id);
+
+  await emitCrashState();
+
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("Backend works");
 });
