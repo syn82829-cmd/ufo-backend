@@ -292,7 +292,7 @@ function pickWeightedDrop(drops) {
 /* ============================= */
 
 const CRASH_WAITING_MS = 5000;
-const CRASH_CRASHED_MS = 1200;
+const CRASH_CRASHED_MS = 250;
 
 let crashSyncPromise = null;
 
@@ -307,8 +307,8 @@ function getRandomCrashPoint() {
 }
 
 function getCrashMultiplierByElapsedMs(elapsedMs) {
-  const elapsed = elapsedMs / 1000;
-  return +(1 + elapsed * 0.85 + elapsed * elapsed * 0.12).toFixed(2);
+  const elapsed = Math.max(0, elapsedMs) / 1000;
+  return +Math.exp(0.14 * elapsed).toFixed(2);
 }
 
 function getNow() {
