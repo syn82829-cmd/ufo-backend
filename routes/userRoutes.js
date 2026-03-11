@@ -19,13 +19,21 @@ router.post("/user", async (req, res) => {
           balance: 0
         }
       })
+    } else if (username && user.username !== username) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { username }
+      })
     }
 
     res.json({
       id: user.id,
       telegram_id: user.telegram_id.toString(),
       username: user.username,
-      balance: user.balance
+      balance: user.balance,
+      casesOpened: user.cases_opened ?? 0,
+      crashGamesPlayed: user.crash_games ?? 0,
+      crashWins: user.crash_wins ?? 0,
     })
   } catch (error) {
     console.error("USER ERROR:", error)
