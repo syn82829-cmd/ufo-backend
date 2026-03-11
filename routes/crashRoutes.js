@@ -43,6 +43,7 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
   router.get("/crash/live", async (req, res) => {
     try {
       const round = await syncCrashState()
+
       if (!round?.id) {
         return res.json([])
       }
@@ -52,11 +53,11 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           roundId: round.id,
         },
         orderBy: {
-          created_at: "desc"
+          created_at: "desc",
         },
         include: {
           user: true,
-        }
+        },
       })
 
       const live = bets.map((bet) => ({
@@ -74,7 +75,7 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           casesOpened: bet.user.cases_opened ?? 0,
           crashGamesPlayed: bet.user.crash_games ?? 0,
           crashWins: bet.user.crash_wins ?? 0,
-        }
+        },
       }))
 
       res.json(live)
@@ -142,14 +143,19 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
         return { updatedUser, bet }
       })
 
-      await emitCrashLive(round.id)
-      await emitCrashState()
-
       res.json({
         balance: result.updatedUser.balance,
         bet: result.bet,
         roundId: round.id,
         roundNumber: round.round_number,
+      })
+
+      emitCrashLive(round.id).catch((error) => {
+        console.error("EMIT CRASH LIVE AFTER BET ERROR:", error)
+      })
+
+      emitCrashState().catch((error) => {
+        console.error("EMIT CRASH STATE AFTER BET ERROR:", error)
       })
     } catch (error) {
       console.error("CRASH BET ERROR:", error)
@@ -224,15 +230,20 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
         return { updatedUser, updatedBet, payout, profit }
       })
 
-      await emitCrashLive(round.id)
-      await emitCrashState()
-
       res.json({
         balance: result.updatedUser.balance,
         payout: result.payout,
         profit: result.profit,
         multiplier: liveMultiplier,
         bet: result.updatedBet,
+      })
+
+      emitCrashLive(round.id).catch((error) => {
+        console.error("EMIT CRASH LIVE AFTER CASHOUT ERROR:", error)
+      })
+
+      emitCrashState().catch((error) => {
+        console.error("EMIT CRASH STATE AFTER CASHOUT ERROR:", error)
       })
     } catch (error) {
       console.error("CRASH CASHOUT ERROR:", error)
