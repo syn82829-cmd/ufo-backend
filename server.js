@@ -291,7 +291,7 @@ function pickWeightedDrop(drops) {
 /* CRASH ENGINE */
 /* ============================= */
 
-const CRASH_WAITING_MS = 5000;
+const CRASH_WAITING_MS = 4000;
 const CRASH_CRASHED_MS = 250;
 
 let crashSyncPromise = null;
@@ -503,7 +503,7 @@ setInterval(async () => {
   } catch (error) {
     console.error("CRASH SYNC ERROR:", error);
   }
-}, 100);
+}, 250);
 
 /* ============================= */
 /* СОЗДАТЬ ИЛИ ПОЛУЧИТЬ USER */
