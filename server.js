@@ -37,7 +37,10 @@ app.use(userRoutes)
 app.use(caseRoutes)
 app.use(inventoryRoutes)
 app.use(transactionRoutes)
-app.use(createCrashRoutes({ emitCrashState: crashSocket.emitCrashState }))
+app.use(createCrashRoutes({
+  emitCrashState: crashSocket.emitCrashState,
+  emitCrashLive: crashSocket.emitCrashLive,
+}))
 
 const PORT = process.env.PORT || 3000
 
