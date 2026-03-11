@@ -460,11 +460,11 @@ function buildCrashState(round) {
 /* держим раунды живыми автоматически */
 setInterval(async () => {
   try {
-    await syncCrashState();
+    await emitCrashState();
   } catch (error) {
     console.error("CRASH SYNC ERROR:", error);
   }
-}, 1000);
+}, 100);
 
 /* ============================= */
 /* СОЗДАТЬ ИЛИ ПОЛУЧИТЬ USER */
@@ -960,7 +960,9 @@ app.post("/crash/bet", async (req, res) => {
 
       return { updatedUser, bet };
     });
-
+    
+await emitCrashState();
+    
     res.json({
       balance: result.updatedUser.balance,
       bet: result.bet,
@@ -1045,6 +1047,8 @@ app.post("/crash/cashout", async (req, res) => {
       return { updatedUser, updatedBet, payout, profit };
     });
 
+await emitCrashState();
+    
     res.json({
       balance: result.updatedUser.balance,
       payout: result.payout,
@@ -1063,6 +1067,6 @@ app.post("/crash/cashout", async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log("Server started on port", PORT);
 });
