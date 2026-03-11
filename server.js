@@ -1,13 +1,17 @@
 const express = require("express")
 const cors = require("cors")
+const http = require("http")
+const { Server } = require("socket.io")
 
 const userRoutes = require("./routes/userRoutes")
 const caseRoutes = require("./routes/caseRoutes")
 const inventoryRoutes = require("./routes/inventoryRoutes")
 const transactionRoutes = require("./routes/transactionRoutes")
-const crashRoutes = require("./routes/crashRoutes")
+const { createCrashRoutes } = require("./routes/crashRoutes")
+const { createCrashSocket } = require("./crash/crashSocket")
 
 const app = express()
+const server = http.createServer(app)
 
 app.use(cors({
   origin: "*",
@@ -15,6 +19,15 @@ app.use(cors({
 }))
 
 app.use(express.json())
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+})
+
+const crashSocket = createCrashSocket(io)
 
 app.get("/", (req, res) => {
   res.send("Backend works")
@@ -24,10 +37,10 @@ app.use(userRoutes)
 app.use(caseRoutes)
 app.use(inventoryRoutes)
 app.use(transactionRoutes)
-app.use(crashRoutes)
+app.use(createCrashRoutes({ emitCrashState: crashSocket.emitCrashState }))
 
 const PORT = process.env.PORT || 3000
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log("Server started on port", PORT)
 })
