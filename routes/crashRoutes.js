@@ -1,9 +1,9 @@
 const express = require("express")
 const prisma = require("../lib/prisma")
 const { syncCrashState, buildCrashState } = require("../crash/crashEngine")
-const { getCrashMultiplierByElapsedMs, getNow } = require("../crash/crashMath")
+const { getMultiplierByElapsedMs, getNow } = require("../crash/crashMath")
 
-function createCrashRoutes({ emitCrashState }) {
+function createCrashRoutes({ emitCrashState, emitCrashLive }) {
   const router = express.Router()
 
   router.get("/crash/state", async (req, res) => {
@@ -142,6 +142,7 @@ function createCrashRoutes({ emitCrashState }) {
         return { updatedUser, bet }
       })
 
+      await emitCrashLive(round.id)
       await emitCrashState()
 
       res.json({
@@ -171,7 +172,7 @@ function createCrashRoutes({ emitCrashState }) {
       }
 
       const elapsedMs = Date.now() - round.flying_started_at.getTime()
-      const liveMultiplier = getCrashMultiplierByElapsedMs(elapsedMs)
+      const liveMultiplier = getMultiplierByElapsedMs(elapsedMs)
 
       if (liveMultiplier >= Number(round.crash_point || 1)) {
         return res.status(400).json({ error: "too late to cash out" })
@@ -223,6 +224,7 @@ function createCrashRoutes({ emitCrashState }) {
         return { updatedUser, updatedBet, payout, profit }
       })
 
+      await emitCrashLive(round.id)
       await emitCrashState()
 
       res.json({
