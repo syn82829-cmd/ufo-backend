@@ -3,7 +3,7 @@ const {
   CRASH_WAITING_MS,
   CRASH_CRASHED_MS,
   getRandomCrashPoint,
-  getCrashMultiplierByElapsedMs,
+  getMultiplierByElapsedMs,
   getNow,
   getMsLeft,
 } = require("./crashMath")
@@ -66,7 +66,7 @@ async function syncCrashStateInternal() {
 
   if (round.status === "flying") {
     const elapsedMs = Date.now() - round.flying_started_at.getTime()
-    const liveMultiplier = getCrashMultiplierByElapsedMs(elapsedMs)
+    const liveMultiplier = getMultiplierByElapsedMs(elapsedMs)
 
     if (liveMultiplier >= Number(round.crash_point || 1)) {
       await prisma.crashRound.update({
@@ -155,7 +155,7 @@ function buildCrashState(round) {
 
   if (round.status === "flying") {
     const elapsedMs = Date.now() - round.flying_started_at.getTime()
-    const multiplier = getCrashMultiplierByElapsedMs(elapsedMs)
+    const multiplier = getMultiplierByElapsedMs(elapsedMs)
 
     return {
       status: "flying",
