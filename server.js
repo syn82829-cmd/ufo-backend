@@ -299,11 +299,13 @@ let crashSyncPromise = null;
 function getRandomCrashPoint() {
   const roll = Math.random();
 
-  if (roll < 0.35) return +(1.1 + Math.random() * 0.8).toFixed(2);
-  if (roll < 0.7) return +(1.9 + Math.random() * 1.6).toFixed(2);
-  if (roll < 0.9) return +(3.5 + Math.random() * 4.5).toFixed(2);
+  if (roll < 0.42) return +(1.01 + Math.random() * 0.24).toFixed(2); // x1.01 - x1.25
+  if (roll < 0.72) return +(1.26 + Math.random() * 0.44).toFixed(2); // x1.26 - x1.70
+  if (roll < 0.88) return +(1.71 + Math.random() * 0.79).toFixed(2); // x1.71 - x2.50
+  if (roll < 0.96) return +(2.51 + Math.random() * 1.49).toFixed(2); // x2.51 - x4.00
+  if (roll < 0.99) return +(4.01 + Math.random() * 3.99).toFixed(2); // x4.01 - x8.00
 
-  return +(8 + Math.random() * 12).toFixed(2);
+  return +(8.01 + Math.random() * 11.99).toFixed(2); // x8.01 - x20.00
 }
 
 function getCrashMultiplierByElapsedMs(elapsedMs) {
