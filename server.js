@@ -503,7 +503,7 @@ setInterval(async () => {
   } catch (error) {
     console.error("CRASH SYNC ERROR:", error);
   }
-}, 250);
+}, 300);
 
 /* ============================= */
 /* СОЗДАТЬ ИЛИ ПОЛУЧИТЬ USER */
