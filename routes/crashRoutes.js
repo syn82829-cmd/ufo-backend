@@ -2,6 +2,7 @@ const express = require("express")
 const prisma = require("../lib/prisma")
 const { syncCrashState, buildCrashState } = require("../crash/crashEngine")
 const { getMultiplierByElapsedMs, getNow } = require("../crash/crashMath")
+const { getLiveBets, setLiveBet, updateLiveBet } = require("../crash/crashStore")
 
 function createCrashRoutes({ emitCrashState, emitCrashLive }) {
   const router = express.Router()
@@ -42,43 +43,7 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
 
   router.get("/crash/live", async (req, res) => {
     try {
-      const round = await syncCrashState()
-
-      if (!round?.id) {
-        return res.json([])
-      }
-
-      const bets = await prisma.crashBet.findMany({
-        where: {
-          roundId: round.id,
-        },
-        orderBy: {
-          created_at: "desc",
-        },
-        include: {
-          user: true,
-        },
-      })
-
-      const live = bets.map((bet) => ({
-        id: bet.id,
-        amount: bet.amount,
-        status: bet.status,
-        cashout_multiplier: bet.cashout_multiplier,
-        payout: bet.payout,
-        profit: bet.profit,
-        created_at: bet.created_at,
-        user: {
-          id: bet.user.id,
-          telegram_id: bet.user.telegram_id.toString(),
-          username: bet.user.username,
-          casesOpened: bet.user.cases_opened ?? 0,
-          crashGamesPlayed: bet.user.crash_games ?? 0,
-          crashWins: bet.user.crash_wins ?? 0,
-        },
-      }))
-
-      res.json(live)
+      res.json(getLiveBets())
     } catch (error) {
       console.error("CRASH LIVE ERROR:", error)
       res.status(500).json({ error: error.message || "crash live error" })
@@ -140,7 +105,25 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           }
         })
 
-        return { updatedUser, bet }
+        return { updatedUser, bet, user }
+      })
+
+      setLiveBet({
+        id: result.bet.id,
+        amount: result.bet.amount,
+        status: result.bet.status,
+        cashout_multiplier: result.bet.cashout_multiplier,
+        payout: result.bet.payout,
+        profit: result.bet.profit,
+        created_at: result.bet.created_at,
+        user: {
+          id: result.user.id,
+          telegram_id: result.user.telegram_id.toString(),
+          username: result.user.username,
+          casesOpened: result.user.cases_opened ?? 0,
+          crashGamesPlayed: result.user.crash_games ?? 0,
+          crashWins: result.user.crash_wins ?? 0,
+        },
       })
 
       res.json({
@@ -150,7 +133,7 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
         roundNumber: round.round_number,
       })
 
-      emitCrashLive(round.id).catch((error) => {
+      emitCrashLive().catch((error) => {
         console.error("EMIT CRASH LIVE AFTER BET ERROR:", error)
       })
 
@@ -230,6 +213,13 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
         return { updatedUser, updatedBet, payout, profit }
       })
 
+      updateLiveBet(result.updatedBet.id, {
+        status: result.updatedBet.status,
+        cashout_multiplier: result.updatedBet.cashout_multiplier,
+        payout: result.updatedBet.payout,
+        profit: result.updatedBet.profit,
+      })
+
       res.json({
         balance: result.updatedUser.balance,
         payout: result.payout,
@@ -238,7 +228,7 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
         bet: result.updatedBet,
       })
 
-      emitCrashLive(round.id).catch((error) => {
+      emitCrashLive().catch((error) => {
         console.error("EMIT CRASH LIVE AFTER CASHOUT ERROR:", error)
       })
 
