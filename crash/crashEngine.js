@@ -7,6 +7,11 @@ const {
   getNow,
   getMsLeft,
 } = require("./crashMath")
+const {
+  getCrashRound,
+  setCrashRound,
+  clearLiveBets,
+} = require("./crashStore")
 
 let crashSyncPromise = null
 
@@ -17,7 +22,7 @@ async function getLatestCrashRound(db = prisma) {
 }
 
 async function createCrashWaitingRound(roundNumber, db = prisma) {
-  return db.crashRound.create({
+  const round = await db.crashRound.create({
     data: {
       round_number: roundNumber,
       status: "waiting",
@@ -25,6 +30,11 @@ async function createCrashWaitingRound(roundNumber, db = prisma) {
       current_multiplier: 1.0,
     },
   })
+
+  clearLiveBets()
+  setCrashRound(round)
+
+  return round
 }
 
 async function markActiveCrashBetsLost(roundId, db = prisma) {
@@ -39,11 +49,30 @@ async function markActiveCrashBetsLost(roundId, db = prisma) {
   })
 }
 
-async function syncCrashStateInternal() {
-  let round = await getLatestCrashRound()
+async function ensureCrashRoundLoaded() {
+  let round = getCrashRound()
+
+  if (round) {
+    return round
+  }
+
+  round = await getLatestCrashRound()
 
   if (!round) {
-    return createCrashWaitingRound(1)
+    round = await createCrashWaitingRound(1)
+  } else {
+    setCrashRound(round)
+  }
+
+  return round
+}
+
+async function syncCrashStateInternal() {
+  let round = await ensureCrashRoundLoaded()
+
+  if (!round) {
+    round = await createCrashWaitingRound(1)
+    return round
   }
 
   if (round.status === "waiting") {
@@ -59,6 +88,9 @@ async function syncCrashStateInternal() {
           current_multiplier: 1.0,
         },
       })
+
+      setCrashRound(round)
+      return round
     }
 
     return round
@@ -84,16 +116,23 @@ async function syncCrashStateInternal() {
       round = await prisma.crashRound.findUnique({
         where: { id: round.id },
       })
+
+      setCrashRound(round)
+      return round
     }
 
-    return round
+    return {
+      ...round,
+      current_multiplier: liveMultiplier,
+    }
   }
 
   if (round.status === "crashed") {
     const crashedEndsAt = new Date(round.crashed_at.getTime() + CRASH_CRASHED_MS)
 
     if (Date.now() >= crashedEndsAt.getTime()) {
-      return createCrashWaitingRound(round.round_number + 1)
+      round = await createCrashWaitingRound(round.round_number + 1)
+      return round
     }
 
     return round
@@ -109,7 +148,13 @@ async function syncCrashState() {
 
   crashSyncPromise = (async () => {
     try {
-      return await syncCrashStateInternal()
+      const round = await syncCrashStateInternal()
+
+      if (round && round.status !== "flying") {
+        setCrashRound(round)
+      }
+
+      return round
     } finally {
       crashSyncPromise = null
     }
@@ -154,8 +199,9 @@ function buildCrashState(round) {
   }
 
   if (round.status === "flying") {
-    const elapsedMs = Date.now() - round.flying_started_at.getTime()
-    const multiplier = getMultiplierByElapsedMs(elapsedMs)
+    const multiplier =
+      Number(round.current_multiplier || 1) ||
+      getMultiplierByElapsedMs(Date.now() - round.flying_started_at.getTime())
 
     return {
       status: "flying",
