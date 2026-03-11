@@ -11,6 +11,8 @@ const {
   getCrashRound,
   setCrashRound,
   clearLiveBets,
+  getLiveBets,
+  updateLiveBet,
 } = require("./crashStore")
 
 let crashSyncPromise = null
@@ -67,6 +69,31 @@ async function ensureCrashRoundLoaded() {
   return round
 }
 
+function persistCrashAsync(round) {
+  prisma.crashRound.update({
+    where: { id: round.id },
+    data: {
+      status: "crashed",
+      crashed_at: round.crashed_at,
+      current_multiplier: Number(round.crash_point || 1),
+      is_settled: true,
+    },
+  }).catch((error) => {
+    console.error("PERSIST CRASH ROUND ERROR:", error)
+  })
+
+  markActiveCrashBetsLost(round.id).catch((error) => {
+    console.error("MARK ACTIVE CRASH BETS LOST ERROR:", error)
+  })
+
+  const liveBets = getLiveBets()
+  for (const bet of liveBets) {
+    if (bet.status === "active") {
+      updateLiveBet(bet.id, { status: "lost" })
+    }
+  }
+}
+
 async function syncCrashStateInternal() {
   let round = await ensureCrashRoundLoaded()
 
@@ -79,17 +106,30 @@ async function syncCrashStateInternal() {
     const waitingEndsAt = new Date(round.countdown_started_at.getTime() + CRASH_WAITING_MS)
 
     if (Date.now() >= waitingEndsAt.getTime()) {
-      round = await prisma.crashRound.update({
+      const flyingStartedAt = getNow()
+
+      round = {
+        ...round,
+        status: "flying",
+        flying_started_at: flyingStartedAt,
+        crash_point: getRandomCrashPoint(),
+        current_multiplier: 1.0,
+      }
+
+      setCrashRound(round)
+
+      prisma.crashRound.update({
         where: { id: round.id },
         data: {
           status: "flying",
-          flying_started_at: getNow(),
-          crash_point: getRandomCrashPoint(),
+          flying_started_at: flyingStartedAt,
+          crash_point: round.crash_point,
           current_multiplier: 1.0,
         },
+      }).catch((error) => {
+        console.error("PERSIST FLYING ROUND ERROR:", error)
       })
 
-      setCrashRound(round)
       return round
     }
 
@@ -99,32 +139,29 @@ async function syncCrashStateInternal() {
   if (round.status === "flying") {
     const elapsedMs = Date.now() - round.flying_started_at.getTime()
     const liveMultiplier = getMultiplierByElapsedMs(elapsedMs)
+    const crashPoint = Number(round.crash_point || 1)
 
-    if (liveMultiplier >= Number(round.crash_point || 1)) {
-      await prisma.crashRound.update({
-        where: { id: round.id },
-        data: {
-          status: "crashed",
-          crashed_at: getNow(),
-          current_multiplier: Number(round.crash_point || 1),
-          is_settled: true,
-        },
-      })
-
-      await markActiveCrashBetsLost(round.id)
-
-      round = await prisma.crashRound.findUnique({
-        where: { id: round.id },
-      })
+    if (liveMultiplier >= crashPoint) {
+      round = {
+        ...round,
+        status: "crashed",
+        crashed_at: getNow(),
+        current_multiplier: crashPoint,
+      }
 
       setCrashRound(round)
+      persistCrashAsync(round)
+
       return round
     }
 
-    return {
+    round = {
       ...round,
       current_multiplier: liveMultiplier,
     }
+
+    setCrashRound(round)
+    return round
   }
 
   if (round.status === "crashed") {
@@ -149,11 +186,6 @@ async function syncCrashState() {
   crashSyncPromise = (async () => {
     try {
       const round = await syncCrashStateInternal()
-
-      if (round && round.status !== "flying") {
-        setCrashRound(round)
-      }
-
       return round
     } finally {
       crashSyncPromise = null
