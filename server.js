@@ -10,6 +10,7 @@ const transactionRoutes = require("./routes/transactionRoutes")
 const { createCrashRoutes } = require("./routes/crashRoutes")
 const { createCrashSocket } = require("./crash/crashSocket")
 const { createStarsRoutes } = require("./routes/starsRoutes")
+const { createTelegramWebhookRoutes } = require("./routes/telegramWebhookRoutes")
 
 const app = express()
 const server = http.createServer(app)
@@ -39,6 +40,7 @@ app.use(caseRoutes)
 app.use(inventoryRoutes)
 app.use(transactionRoutes)
 app.use(createStarsRoutes())
+app.use(createTelegramWebhookRoutes())
 app.use(createCrashRoutes({
   emitCrashState: crashSocket.emitCrashState,
   emitCrashLive: crashSocket.emitCrashLive,
