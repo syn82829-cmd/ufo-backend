@@ -27,19 +27,23 @@ enum CrashBetStatus {
 }
 
 model User {
-  id               String          @id @default(uuid())
-  telegram_id      BigInt          @unique
-  username         String?
-  balance          Int             @default(0)
-  created_at       DateTime        @default(now())
+  id                         String          @id @default(uuid())
+  telegram_id                BigInt          @unique
+  username                   String?
+  balance                    Int             @default(0)
+  created_at                 DateTime        @default(now())
 
-  cases_opened     Int             @default(0)
-  crash_games      Int             @default(0)
-  crash_wins       Int             @default(0)
+  cases_opened               Int             @default(0)
+  crash_games                Int             @default(0)
+  crash_wins                 Int             @default(0)
 
-  transactions     Transaction[]
-  inventory        InventoryItem[]
-  crashBets        CrashBet[]
+  bonus_channel_subscribed   Boolean         @default(false)
+  bonus_friend_invited       Boolean         @default(false)
+  daily_bonus_last_claim_at  DateTime?
+
+  transactions               Transaction[]
+  inventory                  InventoryItem[]
+  crashBets                  CrashBet[]
 }
 
 model Transaction {
@@ -76,23 +80,23 @@ model InventoryItem {
 }
 
 model CrashRound {
-  id                 String            @id @default(uuid())
-  status             CrashRoundStatus  @default(waiting)
+  id                   String            @id @default(uuid())
+  status               CrashRoundStatus  @default(waiting)
 
-  round_number       Int               @unique
+  round_number         Int               @unique
 
   countdown_started_at DateTime?
-  flying_started_at  DateTime?
-  crashed_at         DateTime?
+  flying_started_at    DateTime?
+  crashed_at           DateTime?
 
-  crash_point        Float?
-  current_multiplier Float             @default(1.0)
+  crash_point          Float?
+  current_multiplier   Float             @default(1.0)
 
-  is_settled         Boolean           @default(false)
+  is_settled           Boolean           @default(false)
 
-  created_at         DateTime          @default(now())
+  created_at           DateTime          @default(now())
 
-  bets               CrashBet[]
+  bets                 CrashBet[]
 
   @@index([status])
   @@index([created_at])
