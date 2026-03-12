@@ -39,6 +39,12 @@ async function createCrashWaitingRound(roundNumber, db = prisma) {
   return round
 }
 
+async function createNextCrashWaitingRound(db = prisma) {
+  const latestRound = await getLatestCrashRound(db)
+  const nextRoundNumber = latestRound ? Number(latestRound.round_number) + 1 : 1
+  return createCrashWaitingRound(nextRoundNumber, db)
+}
+
 async function markActiveCrashBetsLost(roundId, db = prisma) {
   await db.crashBet.updateMany({
     where: {
@@ -98,7 +104,7 @@ async function syncCrashStateInternal() {
   let round = await ensureCrashRoundLoaded()
 
   if (!round) {
-    round = await createCrashWaitingRound(1)
+    round = await createNextCrashWaitingRound()
     return round
   }
 
@@ -168,7 +174,7 @@ async function syncCrashStateInternal() {
     const crashedEndsAt = new Date(round.crashed_at.getTime() + CRASH_CRASHED_MS)
 
     if (Date.now() >= crashedEndsAt.getTime()) {
-      round = await createCrashWaitingRound(round.round_number + 1)
+      round = await createNextCrashWaitingRound()
       return round
     }
 
