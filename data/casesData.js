@@ -36,10 +36,27 @@ const casesData = {
       { id: "cl7", name: "Clover Pin Matrix", chance: 10, priceStars: 614, priceGems: "7", png: "cl7", lottie: "/animations/crash/cl7.json" },
     ],
   },
-
+  spacevault: {
+    id: "spacevault",
+    price: 5999,
+    drops: [
+      { id: "locketun", name: "Heart Locket Black Hole", chance: 10, priceStars: 304809, priceGems: "3500", png: "locketun", lottie: "/animations/spacevault/locketun.json" },
+      { id: "nails", name: "Nail Bracelet Interstellar", chance: 10, priceStars: 95888, priceGems: "1099", png: "nails", lottie: "/animations/spacevault/nails.json" },
+      { id: "undyson", name: "Ionic Dryer Satellite", chance: 10, priceStars: 69649, priceGems: "798", png: "undyson", lottie: "/animations/spacevault/undyson.json" },
+      { id: "spfrog", name: "Kissed Frog Zodiak Croak", chance: 10, priceStars: 68809, priceGems: "790", png: "spfrog", lottie: "/animations/spacevault/spfrog.json" },
+      { id: "unbear", name: "Toy Bear Ursa Major", chance: 10, priceStars: 47998, priceGems: "550", png: "unbear", lottie: "/animations/spacevault/unbear.json" },
+      { id: "spwatch", name: "Swiss Watch Intergalactic", chance: 10, priceStars: 17434, priceGems: "200", png: "spwatch", lottie: "/animations/spacevault/spwatch.json" },
+      { id: "spsoska", name: "Bling Binky Event Horizon", chance: 10, priceStars: 9682, priceGems: "111", png: "spsoska", lottie: "/animations/spacevault/spsoska.json" },
+      { id: "unr", name: "Stellar Rocket Telegram", chance: 10, priceStars: 4354, priceGems: "49,55", png: "unr", lottie: "/animations/spacevault/unr.json" },
+      { id: "spkos", name: "Snoop Cigar Space Wrap", chance: 10, priceStars: 3490, priceGems: "40", png: "spkos", lottie: "/animations/spacevault/spkos.json" },
+      { id: "untie", name: "Bow Tie Singularity", chance: 10, priceStars: 3045, priceGems: "34,95", png: "untie", lottie: "/animations/spacevault/untie.json" },
+      { id: "unsh", name: "Witch Hat Nebula Mist", chance: 10, priceStars: 1306, priceGems: "15", png: "unsh", lottie: "/animations/spacevault/unsh.json" },
+      { id: "unkey", name: "Input Key Black Hole", chance: 10, priceStars: 1295, priceGems: "15", png: "unkey", lottie: "/animations/spacevault/unkey.json" },
+    ],
+  },
   darkmatter: {
     id: "darkmatter",
-    price: 5999,
+    price: 4999,
     drops: [
       { id: "gift", name: "Loot Bag Crypto Punk", chance: 10, priceStars: 73800, priceGems: "680", png: "LootBag", lottie: "/animations/darkmatter/gift.json" },
       { id: "darkhelmet", name: "Heroic Helmet Biker Warrior", chance: 5, priceStars: 39300, priceGems: "200", png: "HeroicHelmet", lottie: "/animations/darkmatter/darkhelmet.json" },
@@ -58,7 +75,7 @@ const casesData = {
 
   godparticle: {
     id: "godparticle",
-    price: 4999,
+    price: 4499,
     drops: [
       { id: "icearm", name: "Mighty Arm Icebreaker", chance: 10, priceStars: 173694, priceGems: "2000", png: "icearm", lottie: "/animations/icedmemory/icearm.json" },
       { id: "kepka", name: "Durov's Cap Ashen", chance: 10, priceStars: 130313, priceGems: "1500", png: "kepka", lottie: "/animations/icedmemory/kepka.json" },
@@ -77,7 +94,7 @@ const casesData = {
   
   purplehole: {
     id: "purplehole",
-    price: 2299,
+    price: 999,
     drops: [
       { id: "cat", name: "Scared Cat Purrlion", chance: 10, priceStars: 19499, priceGems: "222", png: "cat", lottie: "/animations/purplehole/cat.json" },
       { id: "kalendar", name: "Voodoo Doll Far Galaxy", chance: 10, priceStars: 5393, priceGems: "59", png: "kalendar", lottie: "/animations/purplehole/kalendar.json" },
