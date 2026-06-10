@@ -1,7 +1,7 @@
 const casesData = {
   firstpepe: {
     id: "firstpepe",
-    price: 9999,
+    price: 5999,
     drops: [
       { id: "pepe", name: "Plush Pepe Spectrum", chance: 0, priceStars: 2235953, priceGems: "25.555", png: "pepe", lottie: "/animations/firstpepe/pepe.json" },
       { id: "ninja", name: "Heart Locket Turtles", chance: 0, priceStars: 1445963, priceGems: "15.595", png: "ninja", lottie: "/animations/firstpepe/ninja.json" },
@@ -20,7 +20,7 @@ const casesData = {
 
   crash: {
     id: "crash",
-    price: 7999,
+    price: 3999,
     drops: [
       { id: "pepe2", name: "Plush Pepe Two Face", chance: 0, priceStars: 1272205, priceGems: "11.111", png: "pepe2", lottie: "/animations/crash/pepe2.json" },
       { id: "cl2", name: "Clover Pin Kelly Green", chance: 10, priceStars: 1695, priceGems: "18,99", png: "cl2", lottie: "/animations/crash/cl2.json" },
@@ -38,7 +38,7 @@ const casesData = {
   },
   spacevault: {
     id: "spacevault",
-    price: 5999,
+    price: 2999,
     drops: [
       { id: "locketun", name: "Heart Locket Black Hole", chance: 0, priceStars: 304809, priceGems: "3500", png: "locketun", lottie: "/animations/spacevault/locketun.json" },
       { id: "nails", name: "Nail Bracelet Interstellar", chance: 0, priceStars: 95888, priceGems: "1099", png: "nails", lottie: "/animations/spacevault/nails.json" },
@@ -56,7 +56,7 @@ const casesData = {
   },
   darkmatter: {
     id: "darkmatter",
-    price: 4999,
+    price: 2399,
     drops: [
       { id: "gift", name: "Loot Bag Crypto Punk", chance: 0, priceStars: 136081, priceGems: "1555", png: "LootBag", lottie: "/animations/darkmatter/gift.json" },
       { id: "darkhelmet", name: "Heroic Helmet Punk Skull", chance: 0, priceStars: 174944, priceGems: "1999", png: "HeroicHelmet", lottie: "/animations/darkmatter/darkhelmet.json" },
@@ -75,7 +75,7 @@ const casesData = {
 
   godparticle: {
     id: "godparticle",
-    price: 4499,
+    price: 1299,
     drops: [
       { id: "icearm", name: "Mighty Arm Icebreaker", chance: 0, priceStars: 173694, priceGems: "2000", png: "icearm", lottie: "/animations/icedmemory/icearm.json" },
       { id: "kepka", name: "Durov's Cap Ashen", chance: 0, priceStars: 130313, priceGems: "1500", png: "kepka", lottie: "/animations/icedmemory/kepka.json" },
@@ -113,7 +113,7 @@ const casesData = {
 
   spacetrash: {
     id: "spacetrash",
-    price: 799,
+    price: 35,
     drops: [
       { id: "soska", name: "Bling Binky Star Fighter", chance: 0, priceStars: 22203, priceGems: "250", png: "soska", lottie: "/animations/spacetrash/soska.json" },
       { id: "froggo", name: "Kissed Frog Tesla", chance: 0, priceStars: 13425, priceGems: "150", png: "froggo", lottie: "/animations/spacetrash/froggo.json" },
@@ -132,11 +132,11 @@ const casesData = {
 
   starfall: {
     id: "starfall",
-    price: 499,
+    price: 399,
     drops: [
       { id: "stars_100", name: "100 Stars", chance: 40, priceStars: 100, priceGems: null, png: "star", lottie: null },
-      { id: "stars_150", name: "150 Stars", chance: 22, priceStars: 150, priceGems: null, png: "star", lottie: null },
-      { id: "stars_250", name: "250 Stars", chance: 18, priceStars: 250, priceGems: null, png: "star", lottie: null },
+      { id: "stars_150", name: "150 Stars", chance: 2, priceStars: 150, priceGems: null, png: "star", lottie: null },
+      { id: "stars_250", name: "250 Stars", chance: 1, priceStars: 250, priceGems: null, png: "star", lottie: null },
       { id: "stars_350", name: "350 Stars", chance: 1, priceStars: 350, priceGems: null, png: "star", lottie: null },
       { id: "stars_500", name: "500 Stars", chance: 1, priceStars: 500, priceGems: null, png: "star", lottie: null },
       { id: "stars_750", name: "750 Stars", chance: 1, priceStars: 750, priceGems: null, png: "star", lottie: null },
@@ -149,7 +149,7 @@ const casesData = {
 
   randomcase: {
     id: "randomcase",
-    price: 999,
+    price: 499,
     drops: [
       { id: "case_firstpepe", name: "Pepe Case", chance: 1, priceStars: 9999, priceGems: null, png: "case1", lottie: null },
       { id: "case_crash", name: "All or Nothing", chance: 1, priceStars: 7999, priceGems: null, png: "case2", lottie: null },
