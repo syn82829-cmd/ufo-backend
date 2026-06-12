@@ -1,42 +1,64 @@
+let ioRef = null
+
 const FAKE_DROPS = [
-  { image: "/drops/Baklajan.png", weight: 1 },
-  { image: "/drops/Dog.png", weight: 2 },
-  { image: "/drops/Fen.png", weight: 2 },
-  { image: "/drops/HeroicHelmet.png", weight: 0.5 },
-  { image: "/drops/IonicDryer.png", weight: 1 },
-  { image: "/drops/Klever.png", weight: 0.8 },
-  // остальные дропы с весами
+  { image: "/drops/Baklajan.png", weight: 5 },
+  { image: "/drops/Dog.png", weight: 10 },
+  { image: "/drops/Fen.png", weight: 10 },
+  { image: "/drops/HeroicHelmet.png", weight: 1 },
+  { image: "/drops/IonicDryer.png", weight: 4 },
+  { image: "/drops/Klever.png", weight: 2 },
 ]
 
-let liveDrops = Array.from({ length: 6 }, () => randomFakeDrop())
+let liveDrops = []
 
-function randomFakeDrop() {
-  const totalWeight = FAKE_DROPS.reduce((sum, d) => sum + d.weight, 0)
-  let r = Math.random() * totalWeight
-  for (const drop of FAKE_DROPS) {
-    if (r < drop.weight) return drop.image
-    r -= drop.weight
+function randomWeightedDrop() {
+  const total = FAKE_DROPS.reduce((s, d) => s + d.weight, 0)
+  let r = Math.random() * total
+
+  for (const d of FAKE_DROPS) {
+    if (r < d.weight) return d.image
+    r -= d.weight
   }
+
   return FAKE_DROPS[0].image
 }
 
+function emit() {
+  if (!ioRef) return
+  ioRef.emit("live:drops", liveDrops)
+}
+
+function pushDrop(image) {
+  liveDrops = [image, ...liveDrops.slice(0, 5)]
+  emit()
+}
+
+function startFakeLoop() {
+  const tick = () => {
+    const drop = randomWeightedDrop()
+    pushDrop(drop)
+
+    const delay = 120000 + Math.random() * 180000 // 2–5 min
+    setTimeout(tick, delay)
+  }
+
+  setTimeout(tick, 5000)
+}
+
 function attachLiveDropsSocket(io) {
+  ioRef = io
+
+  liveDrops = Array.from({ length: 6 }, randomWeightedDrop)
+
   io.on("connection", (socket) => {
     socket.emit("live:drops", liveDrops)
   })
 
-  // фейковые дропы каждые 2–5 минут
-  setInterval(() => {
-    const drop = randomFakeDrop()
-    liveDrops = [drop, ...liveDrops.slice(0, 5)]
-    io.emit("live:drops", liveDrops)
-  }, 2 * 60 * 1000 + Math.random() * 3 * 60 * 1000)
+  startFakeLoop()
 }
 
-// пуш реального дропа при открытии кейса
-function emitRealDrop(io, dropImage) {
-  liveDrops = [dropImage, ...liveDrops.slice(0, 5)]
-  io.emit("live:drops", liveDrops)
+function emitRealDrop(image) {
+  pushDrop(image)
 }
 
 module.exports = {
