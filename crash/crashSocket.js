@@ -51,6 +51,10 @@ function createCrashSocket(io) {
     await emitCrashLive()
     await emitLiveDrops()
 
+    socket.on("live:drops:get", () => {
+      socket.emit("live:drops", getLiveDrops())
+    })
+
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id)
     })
