@@ -13,6 +13,9 @@ const { createStarsRoutes } = require("./routes/starsRoutes")
 const { createTelegramWebhookRoutes } = require("./routes/telegramWebhookRoutes")
 const { createBonusRoutes } = require("./routes/bonusRoutes")
 
+const { initLiveDrops } = require("./live/liveDropsEmitter")
+const { scheduleFakeDrop } = require("./live/fakeDrops")
+
 const app = express()
 const server = http.createServer(app)
 
@@ -29,6 +32,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 })
+
+initLiveDrops(io)
+scheduleFakeDrop()
 
 const crashSocket = createCrashSocket(io)
 
