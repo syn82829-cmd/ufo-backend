@@ -1,60 +1,46 @@
 const FAKE_DROPS = [
-  { image: "/drops/Baklajan.png", weight: 100 },
-  { image: "/drops/Dog.png", weight: 90 },
-  { image: "/drops/Fen.png", weight: 80 },
-  { image: "/drops/HeroicHelmet.png", weight: 15 },
-  { image: "/drops/IonicDryer.png", weight: 10 },
-  { image: "/drops/Klever.png", weight: 5 },
-  { image: "/drops/Kosak.png", weight: 5 },
-  // 👉 сюда потом добавишь остальные
+  { image: "/drops/Baklajan.png", weight: 1 },
+  { image: "/drops/Dog.png", weight: 2 },
+  { image: "/drops/Fen.png", weight: 2 },
+  { image: "/drops/HeroicHelmet.png", weight: 0.5 },
+  { image: "/drops/IonicDryer.png", weight: 1 },
+  { image: "/drops/Klever.png", weight: 0.8 },
+  // 👉 добавь остальные дропы с весами
 ]
 
-let lastDrops = []
+let liveDrops = Array.from({ length: 6 }, () => randomFakeDrop())
 
-function getWeightedDrop(drops) {
-  const totalWeight = drops.reduce((sum, d) => sum + d.weight, 0)
-  let random = Math.random() * totalWeight
-
-  for (const drop of drops) {
-    random -= drop.weight
-    if (random <= 0) return drop.image
+function randomFakeDrop() {
+  const totalWeight = FAKE_DROPS.reduce((sum, d) => sum + d.weight, 0)
+  let r = Math.random() * totalWeight
+  for (const drop of FAKE_DROPS) {
+    if (r < drop.weight) return drop.image
+    r -= drop.weight
   }
-  return drops[0].image
-}
-
-function addDrop(image, fake = true) {
-  const drop = { image, fake, timestamp: Date.now() }
-  lastDrops = [drop, ...lastDrops.slice(0, 5)] // всегда последние 6
-  return drop
-}
-
-function emitFakeDrop(io) {
-  const image = getWeightedDrop(FAKE_DROPS)
-  const drop = addDrop(image, true)
-  io.emit("liveDrops:update", drop)
-}
-
-// можно использовать для реального дропа после открытия кейса
-function emitRealDrop(io, image) {
-  const drop = addDrop(image, false)
-  io.emit("liveDrops:update", drop)
+  return FAKE_DROPS[0].image
 }
 
 function attachLiveDropsSocket(io) {
   io.on("connection", (socket) => {
-    console.log("LiveDrops socket connected:", socket.id)
-    // отправляем историю последних 6 дропов
-    socket.emit("liveDrops:history", lastDrops)
+    // отправляем текущий лайв новым пользователям
+    socket.emit("live:drops", liveDrops)
   })
 
-  // фейковые дропы каждые 2–5 минут
+  // фейковые дропы каждые 2–5 минут (или реже/чаще)
   setInterval(() => {
-    emitFakeDrop(io)
-  }, 120_000 + Math.random() * 180_000) // 2–5 минут
+    const drop = randomFakeDrop()
+    liveDrops = [drop, ...liveDrops.slice(0, 5)]
+    io.emit("live:drops", liveDrops)
+  }, 2 * 60 * 1000 + Math.random() * 3 * 60 * 1000)
+}
+
+// пуш реального дропа
+function emitRealDrop(io, dropImage) {
+  liveDrops = [dropImage, ...liveDrops.slice(0, 5)]
+  io.emit("live:drops", liveDrops)
 }
 
 module.exports = {
   attachLiveDropsSocket,
   emitRealDrop,
-  emitFakeDrop,
 }
