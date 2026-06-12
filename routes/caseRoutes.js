@@ -1,6 +1,7 @@
 const express = require("express")
 const prisma = require("../lib/prisma")
 const { casesData, pickWeightedDrop } = require("../data/casesData")
+const { emitLiveDrop } = require("../live/liveDropsEmitter")
 
 const router = express.Router()
 
@@ -67,6 +68,12 @@ router.post("/case/open", async (req, res) => {
         balance: updatedUser.balance,
         inventoryItem,
       }
+    })
+
+    emitLiveDrop({
+      image: result.inventoryItem.png,
+      name: result.inventoryItem.dropName,
+      price: result.inventoryItem.priceStars || 0,
     })
 
     res.json({
