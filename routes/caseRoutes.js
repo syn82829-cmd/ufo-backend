@@ -1,6 +1,13 @@
+// caseRoutes.js
 const express = require("express")
 const prisma = require("../lib/prisma")
 const { casesData, pickWeightedDrop } = require("../data/casesData")
+
+// Это будет объект socket.io, передаем при подключении роутов
+let io = null
+function setSocket(serverIo) {
+  io = serverIo
+}
 
 const router = express.Router()
 
@@ -13,33 +20,21 @@ router.post("/case/open", async (req, res) => {
     }
 
     const caseConfig = casesData[caseId]
-    if (!caseConfig) {
-      return res.status(404).json({ error: "case not found" })
-    }
+    if (!caseConfig) return res.status(404).json({ error: "case not found" })
 
     const winner = pickWeightedDrop(caseConfig.drops)
-    if (!winner) {
-      return res.status(400).json({ error: "no drops available in case" })
-    }
+    if (!winner) return res.status(400).json({ error: "no drops available in case" })
 
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { telegram_id: BigInt(telegram_id) }
       })
-
-      if (!user) {
-        throw new Error("User not found")
-      }
-
-      if (user.balance < caseConfig.price) {
-        throw new Error("Insufficient balance")
-      }
+      if (!user) throw new Error("User not found")
+      if (user.balance < caseConfig.price) throw new Error("Insufficient balance")
 
       const updatedUser = await tx.user.update({
         where: { id: user.id },
-        data: {
-          balance: { decrement: caseConfig.price }
-        }
+        data: { balance: { decrement: caseConfig.price } }
       })
 
       const inventoryItem = await tx.inventoryItem.create({
@@ -63,6 +58,11 @@ router.post("/case/open", async (req, res) => {
         }
       })
 
+      // 🔥 Здесь отправляем новый дроп всем клиентам
+      if (io) {
+        io.emit("live:drops:add", inventoryItem.png) // отправляем путь к картинке
+      }
+
       return {
         balance: updatedUser.balance,
         inventoryItem,
@@ -79,4 +79,4 @@ router.post("/case/open", async (req, res) => {
   }
 })
 
-module.exports = router
+module.exports = { router, setSocket }
