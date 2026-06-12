@@ -4,11 +4,16 @@ const http = require("http")
 const { Server } = require("socket.io")
 
 const userRoutes = require("./routes/userRoutes")
-const caseRoutesFactory = require("./routes/caseRoutes")
+const caseRoutes = require("./routes/caseRoutes")
 const inventoryRoutes = require("./routes/inventoryRoutes")
 const transactionRoutes = require("./routes/transactionRoutes")
-
+const { createCrashRoutes } = require("./routes/crashRoutes")
 const { createCrashSocket } = require("./crash/crashSocket")
+const { createStarsRoutes } = require("./routes/starsRoutes")
+const { createTelegramWebhookRoutes } = require("./routes/telegramWebhookRoutes")
+const { createBonusRoutes } = require("./routes/bonusRoutes")
+
+// LiveDrops
 const { attachLiveDropsSocket } = require("./live/liveDropsEngine")
 
 const app = express()
@@ -17,21 +22,25 @@ const server = http.createServer(app)
 app.use(cors({ origin: "*", methods: ["GET", "POST"] }))
 app.use(express.json())
 
-const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] },
-})
+const io = new Server(server, { cors: { origin: "*", methods: ["GET","POST"] } })
 
-// sockets
-const crashSocket = createCrashSocket(io)
+// подключаем все сокеты
+createCrashSocket(io)
 attachLiveDropsSocket(io)
-
-// routes
-app.use(userRoutes)
-app.use(inventoryRoutes)
-app.use(transactionRoutes)
-app.use(caseRoutesFactory(io))
 
 app.get("/", (req, res) => res.send("Backend works"))
 
+app.use(userRoutes)
+app.use(caseRoutes)
+app.use(inventoryRoutes)
+app.use(transactionRoutes)
+app.use(createStarsRoutes())
+app.use(createTelegramWebhookRoutes())
+app.use(createBonusRoutes())
+app.use(createCrashRoutes({
+  emitCrashState: io.emit.bind(io, "crash:state"),
+  emitCrashLive: io.emit.bind(io, "crash:live"),
+}))
+
 const PORT = process.env.PORT || 3000
-server.listen(PORT, () => console.log("Server started", PORT))
+server.listen(PORT, () => console.log("Server started on port", PORT))
