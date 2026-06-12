@@ -13,6 +13,9 @@ const { createStarsRoutes } = require("./routes/starsRoutes")
 const { createTelegramWebhookRoutes } = require("./routes/telegramWebhookRoutes")
 const { createBonusRoutes } = require("./routes/bonusRoutes")
 
+// LiveDrops
+const { attachLiveDropsSocket } = require("./live/liveDropsEngine")
+
 const app = express()
 const server = http.createServer(app)
 
@@ -30,7 +33,11 @@ const io = new Server(server, {
   },
 })
 
+// Crash
 const crashSocket = createCrashSocket(io)
+
+// LiveDrops
+attachLiveDropsSocket(io)
 
 app.get("/", (req, res) => {
   res.send("Backend works")
@@ -49,7 +56,6 @@ app.use(createCrashRoutes({
 }))
 
 const PORT = process.env.PORT || 3000
-
 server.listen(PORT, () => {
   console.log("Server started on port", PORT)
 })
