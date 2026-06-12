@@ -13,32 +13,22 @@ const { createStarsRoutes } = require("./routes/starsRoutes")
 const { createTelegramWebhookRoutes } = require("./routes/telegramWebhookRoutes")
 const { createBonusRoutes } = require("./routes/bonusRoutes")
 
+// LiveDrops
 const { attachLiveDropsSocket } = require("./live/liveDropsEngine")
 
 const app = express()
 const server = http.createServer(app)
 
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-}))
-
+app.use(cors({ origin: "*", methods: ["GET", "POST"] }))
 app.use(express.json())
 
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-})
+const io = new Server(server, { cors: { origin: "*", methods: ["GET","POST"] } })
 
-const crashSocket = createCrashSocket(io)
-
+// подключаем все сокеты
+createCrashSocket(io)
 attachLiveDropsSocket(io)
 
-app.get("/", (req, res) => {
-  res.send("Backend works")
-})
+app.get("/", (req, res) => res.send("Backend works"))
 
 app.use(userRoutes)
 app.use(caseRoutes)
@@ -48,12 +38,9 @@ app.use(createStarsRoutes())
 app.use(createTelegramWebhookRoutes())
 app.use(createBonusRoutes())
 app.use(createCrashRoutes({
-  emitCrashState: crashSocket.emitCrashState,
-  emitCrashLive: crashSocket.emitCrashLive,
+  emitCrashState: io.emit.bind(io, "crash:state"),
+  emitCrashLive: io.emit.bind(io, "crash:live"),
 }))
 
 const PORT = process.env.PORT || 3000
-
-server.listen(PORT, () => {
-  console.log("Server started on port", PORT)
-})
+server.listen(PORT, () => console.log("Server started on port", PORT))
