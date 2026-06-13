@@ -138,7 +138,7 @@ const casesData = {
     { id: "mcl", name: "Clover Pin Matrix", chance: 10, priceStars: 905, priceGems: "8", png: "mcl", lottie: "/animations/matrix/mcl.json" },
     { id: "mkey", name: "Input Key Matrix", chance: 10, priceStars: 800, priceGems: "7", png: "mkey", lottie: "/animations/matrix/mkey.json" },
     { id: "mcookie", name: "Ginger Cookie Matrix", chance: 10, priceStars: 600, priceGems: "5", png: "mcookie", lottie: "/animations/matrix/mcookie.json" },
-    { id: "mtime", name: "Big Year Matrix", chance: 10, priceStars: 550, priceGems: "4,5", png: "raketa", lottie: "/animations/spacetrash/raketa.json" },
+    { id: "mtime", name: "Big Year Matrix", chance: 10, priceStars: 550, priceGems: "4,5", png: "mtime", lottie: "/animations/matrix/mtime.json" },
     { id: "stars_300", name: "Stars", chance: 8, priceStars: 300, priceGems: null, png: "star", lottie: null },
     { id: "diamond", name: "Diamond", chance: 10, priceStars: 100, priceGems: "0,8", png: "diamond", lottie: "/animations/spacetrash/diamond.json" },
     { id: "dring", name: "Ring", chance: 10, priceStars: 100, priceGems: "0,8", png: "dring", lottie: "/animations/spacetrash/dring.json" },
