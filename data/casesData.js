@@ -125,6 +125,31 @@ const casesData = {
     ],
   },
 
+  matrix: {
+  id: "matrix",
+  name: "Matrix",
+  image: "/cases/matrix.PNG",
+  price: 100,
+  drops: [
+    { id: "mdoll", name: "Record Player Illuminati", chance: 10, priceStars: 97000, priceGems: "1075", png: "mdoll", lottie: "/animations/matrix/mdoll.json" },
+    { id: "mbear", name: "Toy Bear Matrix", chance: 10, priceStars: 29156, priceGems: "250", png: "mbear", lottie: "/animations/matrix/mbear.json" },
+    { id: "mring", name: "Bonded Ring Neo Matrix", chance: 10, priceStars: 23170, priceGems: "200", png: "mring", lottie: "/animations/matrix/mring.json" },
+    { id: "matrix", name: "Hex Pot Matrix", chance: 10, priceStars: 1750, priceGems: "15", png: "matrix", lottie: "/animations/matrix/matrix.json" },
+    { id: "mcl", name: "Clover Pin Matrix", chance: 10, priceStars: 905, priceGems: "8", png: "mcl", lottie: "/animations/matrix/mcl.json" },
+    { id: "mkey", name: "Input Key Matrix", chance: 10, priceStars: 800, priceGems: "7", png: "mkey", lottie: "/animations/matrix/mkey.json" },
+    { id: "mcookie", name: "Ginger Cookie Matrix", chance: 10, priceStars: 600, priceGems: "5", png: "mcookie", lottie: "/animations/matrix/mcookie.json" },
+    { id: "mtime", name: "Big Year Matrix", chance: 10, priceStars: 550, priceGems: "4,5", png: "raketa", lottie: "/animations/spacetrash/raketa.json" },
+    { id: "stars_300", name: "Stars", chance: 8, priceStars: 300, priceGems: null, png: "star", lottie: null },
+    { id: "diamond", name: "Diamond", chance: 10, priceStars: 100, priceGems: "0,8", png: "diamond", lottie: "/animations/spacetrash/diamond.json" },
+    { id: "dring", name: "Ring", chance: 10, priceStars: 100, priceGems: "0,8", png: "dring", lottie: "/animations/spacetrash/dring.json" },
+    { id: "cup", name: "Cup", chance: 10, priceStars: 100, priceGems: "0,8", png: "cup", lottie: "/animations/spacetrash/cup.json" },
+    { id: "rock", name: "Rocket", chance: 10, priceStars: 50, priceGems: "0,3", png: "rock", lottie: "/animations/spacetrash/rock.json" },
+    { id: "podarok", name: "Gift", chance: 10, priceStars: 25, priceGems: "0,15", png: "podarok", lottie: "/animations/spacetrash/podarok.json" },
+    { id: "stars_15", name: "Stars", chance: 8, priceStars: 15, priceGems: null, png: "star", lottie: null },
+    { id: "stars_5", name: "Stars", chance: 8, priceStars: 5, priceGems: null, png: "star", lottie: null },
+  ],
+},
+
   spacetrash: {
     id: "spacetrash",
     price: 35,
