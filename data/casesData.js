@@ -127,8 +127,6 @@ const casesData = {
 
   matrix: {
   id: "matrix",
-  name: "Matrix",
-  image: "/cases/matrix.PNG",
   price: 100,
   drops: [
     { id: "mdoll", name: "Record Player Illuminati", chance: 10, priceStars: 97000, priceGems: "1075", png: "mdoll", lottie: "/animations/matrix/mdoll.json" },
