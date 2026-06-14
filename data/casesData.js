@@ -172,6 +172,29 @@ const casesData = {
   ],
 },
 
+  bigbang: {
+  id: "bigbang",
+  price: 50,
+  drops: [
+    { id: "atom", name: "Bonded Ring Atomic Core", chance: 10, priceStars: 25250, priceGems: "230", png: "atom", lottie: "/animations/bigbang/atom.json" },
+    { id: "bgflow", name: "Sakura Flower Big Bang", chance: 10, priceStars: 1470, priceGems: "13", png: "bgflow", lottie: "/animations/bigbang/bgflow.json" },
+    { id: "bg", name: "Joyful Bundle The Big Bang", chance: 10, priceStars: 1100, priceGems: "10", png: "bg", lottie: "/animations/bigbang/bg.json" },
+    { id: "bgknopka", name: "Input Key Ctrl+Pi", chance: 10, priceStars: 905, priceGems: "8", png: "bgknopka", lottie: "/animations/bigbang/bgknopka.json" },
+    { id: "gbook", name: "Timeless Book Geometry", chance: 10, priceStars: 800, priceGems: "7", png: "gbook", lottie: "/animations/bigbang/gbook.json" },
+    { id: "bgshl", name: "Jester Hat Mind Blown", chance: 10, priceStars: 790, priceGems: "7,5", png: "bgshl", lottie: "/animations/bigbang/bgshl.json" },
+    { id: "byket", name: "Pretty Posy Boom Bloom", chance: 10, priceStars: 725, priceGems: "6", png: "byket", lottie: "/animations/bigbang/byket.json" },
+    { id: "bgdesk", name: "Big Year Einstein", chance: 10, priceStars: 695, priceGems: "5,95", png: "bgdesk", lottie: "/animations/bigbang/bgdesk.json" },
+    { id: "stars_300", name: "Stars", chance: 8, priceStars: 300, priceGems: null, png: "star", lottie: null },
+    { id: "diamond", name: "Diamond", chance: 10, priceStars: 100, priceGems: "0,8", png: "diamond", lottie: "/animations/spacetrash/diamond.json" },
+    { id: "dring", name: "Ring", chance: 10, priceStars: 100, priceGems: "0,8", png: "dring", lottie: "/animations/spacetrash/dring.json" },
+    { id: "cup", name: "Cup", chance: 10, priceStars: 100, priceGems: "0,8", png: "cup", lottie: "/animations/spacetrash/cup.json" },
+    { id: "rock", name: "Rocket", chance: 10, priceStars: 50, priceGems: "0,3", png: "rock", lottie: "/animations/spacetrash/rock.json" },
+    { id: "podarok", name: "Gift", chance: 10, priceStars: 25, priceGems: "0,15", png: "podarok", lottie: "/animations/spacetrash/podarok.json" },
+    { id: "stars_15", name: "Stars", chance: 8, priceStars: 15, priceGems: null, png: "star", lottie: null },
+    { id: "stars_5", name: "Stars", chance: 8, priceStars: 5, priceGems: null, png: "star", lottie: null },
+  ],
+},
+
   spacetrash: {
     id: "spacetrash",
     price: 35,
