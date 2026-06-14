@@ -31,7 +31,7 @@ function createStarsRoutes() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: "UFOmo Balance Top-Up",
+            title: "GIFTON Balance Top-Up",
             description: `Пополнение баланса на ${numericAmount} ⭐`,
             payload,
             currency: "XTR",
