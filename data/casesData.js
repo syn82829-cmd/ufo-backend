@@ -185,7 +185,7 @@ const casesData = {
     { id: "byket", name: "Pretty Posy Boom Bloom", chance: 0, priceStars: 725, priceGems: "6", png: "byket", lottie: "/animations/bigbang/byket.json" },
     { id: "bgdesk", name: "Big Year Einstein", chance: 0, priceStars: 695, priceGems: "5,95", png: "bgdesk", lottie: "/animations/bigbang/bgdesk.json" },
     { id: "stars_300", name: "Stars", chance: 0, priceStars: 300, priceGems: null, png: "star", lottie: null },
-    { id: "diamond", name: "Diamond", chance: p, priceStars: 100, priceGems: "0,8", png: "diamond", lottie: "/animations/spacetrash/diamond.json" },
+    { id: "diamond", name: "Diamond", chance: 0, priceStars: 100, priceGems: "0,8", png: "diamond", lottie: "/animations/spacetrash/diamond.json" },
     { id: "dring", name: "Ring", chance: 0, priceStars: 100, priceGems: "0,8", png: "dring", lottie: "/animations/spacetrash/dring.json" },
     { id: "cup", name: "Cup", chance: 1, priceStars: 100, priceGems: "0,8", png: "cup", lottie: "/animations/spacetrash/cup.json" },
     { id: "rock", name: "Rocket", chance: 2, priceStars: 50, priceGems: "0,3", png: "rock", lottie: "/animations/spacetrash/rock.json" },
