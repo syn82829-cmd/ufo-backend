@@ -85,7 +85,7 @@ const casesData = {
 
   godparticle: {
     id: "godparticle",
-    price: 1299,
+    price: 1499,
     drops: [
       { id: "icearm", name: "Mighty Arm Icebreaker", chance: 0, priceStars: 173694, priceGems: "2000", png: "icearm", lottie: "/animations/icedmemory/icearm.json" },
       { id: "kepka", name: "Durov's Cap Ashen", chance: 0, priceStars: 130313, priceGems: "1500", png: "kepka", lottie: "/animations/icedmemory/kepka.json" },
@@ -103,10 +103,30 @@ const casesData = {
       { id: "stars_500", name: "Stars", chance: 40, priceStars: 500, priceGems: null, png: "star", lottie: null },
     ],
   },
+
+  adultsworld: {
+  id: "adultsworld",
+  price: 1199,
+  drops: [
+    { id: "gbit", name: "Mighty Arm Overlord", chance: 10, priceStars: 91800, priceGems: "800", png: "gbit", lottie: "/animations/adultsworld/gbit.json" },
+    { id: "probka", name: "Stellar Rocket Mission Uranus", chance: 10, priceStars: 23940, priceGems: "210", png: "probka", lottie: "/animations/adultsworld/probka.json" },
+    { id: "fbunny", name: "Spring Basket Rabbit Habit", chance: 10, priceStars: 17200, priceGems: "150", png: "fbunny", lottie: "/animations/adultsworld/fbunny.json" },
+    { id: "bunny", name: "Spring Basket Bondage", chance: 10, priceStars: 13700, priceGems: "120", png: "bunny", lottie: "/animations/adultsworld/bunny.json" },
+    { id: "kal", name: "Desk Calendar Adult Tasks", chance: 10, priceStars: 8900, priceGems: "80", png: "kal", lottie: "/animations/adultsworld/kal.json" },
+    { id: "vibrator", name: "Chill Flame Satis-fire", chance: 10, priceStars: 7300, priceGems: "63", png: "vibrator", lottie: "/animations/adultsworld/vibrator.json" },
+    { id: "pbook", name: "Star Notepad Peachless", chance: 10, priceStars: 5150, priceGems: "45", png: "pbook", lottie: "/animations/adultsworld/pbook.json" },
+    { id: "knopkaa", name: "Input Key Submit Button", chance: 10, priceStars: 3899, priceGems: "35", png: "knopkaa", lottie: "/animations/adultsworld/knopkaa.json" },
+    { id: "snass", name: "Snoop Cigar Doggystyle", chance: 10, priceStars: 3300, priceGems: "31", png: "snass", lottie: "/animations/adultsworld/snass.json" },
+    { id: "spool", name: "Pool Float Baywatch", chance: 10, priceStars: 1250, priceGems: "11", png: "spool", lottie: "/animations/adultsworld/spool.json" },
+    { id: "apool", name: "Pool Float Peach Shake", chance: 10, priceStars: 590, priceGems: "4,5", png: "apool", lottie: "/animations/adultsworld/apool.json" },
+    { id: "stars_350", name: "Stars", chance: 8, priceStars: 350, priceGems: null, png: "star", lottie: null },
+    { id: "stars_250", name: "Stars", chance: 8, priceStars: 250, priceGems: null, png: "star", lottie: null },
+  ],
+},
   
   purplehole: {
     id: "purplehole",
-    price: 999,
+    price: 699,
     drops: [
       { id: "cat", name: "Scared Cat Purrlion", chance: 0, priceStars: 19499, priceGems: "222", png: "cat", lottie: "/animations/purplehole/cat.json" },
       { id: "kalendar", name: "Voodoo Doll Far Galaxy", chance: 0, priceStars: 5393, priceGems: "59", png: "kalendar", lottie: "/animations/purplehole/kalendar.json" },
