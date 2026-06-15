@@ -149,6 +149,29 @@ const casesData = {
     ],
   },
 
+  darkenergy: {
+  id: "darkenergy"
+  price: 150,
+  drops: [
+    { id: "peach", name: "Precious Peach Peach Black", chance: 0, priceStars: 38200, priceGems: "330", png: "peach", lottie: "/animations/darkenergy/peach.json" },
+    { id: "lowriderr", name: "Low Rider LA Noir", chance: 0, priceStars: 14100, priceGems: "135", png: "lowriderr", lottie: "/animations/darkenergy/lowriderr.json" },
+    { id: "diamonds", name: "Ion Gem Noir Manga", chance: 0, priceStars: 11500, priceGems: "99", png: "diamonds", lottie: "/animations/darkenergy/diamonds.json" },
+    { id: "nkolco", name: "Bonded Ring Black Hole", chance: 0, priceStars: 9345, priceGems: "80", png: "nkolco", lottie: "/animations/darkenergy/nkolco.json" },
+    { id: "nshlem", name: "Neko Helmet Blackout", chance: 0, priceStars: 7665, priceGems: "65,56", png: "nshlem", lottie: "/animations/darkenegry/nshlem.json" },
+    { id: "nbook", name: "Star Notepad Negative", chance: 0, priceStars: 2925, priceGems: "25", png: "nbook", lottie: "/animations/darkenergy/nbook.json" },
+    { id: "nball", name: "Snow Globe Night Snow", chance: 0, priceStars: 1100, priceGems: "10", png: "nball", lottie: "/animations/darkenergy/nball.json" },
+    { id: "ncookie", name: "Ginger Cookie Opposite", chance: 0, priceStars: 935, priceGems: "8", png: "ncookie", lottie: "/animations/darkenegry/ncookie.json" },
+    { id: "noir", name: "Winter Wreath Negative", chance: 0, priceStars: 600, priceGems: "5", png: "noir", lottie: "/animations/darkenegry/noir.json" },
+    { id: "diamond", name: "Diamond", chance: 1, priceStars: 100, priceGems: "0,8", png: "diamond", lottie: "/animations/spacetrash/diamond.json" },
+    { id: "dring", name: "Ring", chance: 1, priceStars: 100, priceGems: "0,8", png: "dring", lottie: "/animations/spacetrash/dring.json" },
+    { id: "cup", name: "Cup", chance: 1, priceStars: 100, priceGems: "0,8", png: "cup", lottie: "/animations/spacetrash/cup.json" },
+    { id: "rock", name: "Rocket", chance: 10, priceStars: 50, priceGems: "0,3", png: "rock", lottie: "/animations/spacetrash/rock.json" },
+    { id: "podarok", name: "Gift", chance: 15, priceStars: 25, priceGems: "0,15", png: "podarok", lottie: "/animations/spacetrash/podarok.json" },
+    { id: "stars_15", name: "Stars", chance: 20, priceStars: 15, priceGems: null, png: "star", lottie: null },
+    { id: "stars_5", name: "Stars", chance: 40, priceStars: 5, priceGems: null, png: "star", lottie: null },
+  ],
+},
+
   matrix: {
   id: "matrix",
   price: 100,
