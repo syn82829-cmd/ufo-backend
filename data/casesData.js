@@ -150,7 +150,9 @@ const casesData = {
   },
 
   darkenergy: {
-  id: "darkenergy"
+  id: "darkenergy",
+  name: "Dark Energy",
+  image: "/cases/singularity.PNG",
   price: 150,
   drops: [
     { id: "peach", name: "Precious Peach Peach Black", chance: 0, priceStars: 38200, priceGems: "330", png: "peach", lottie: "/animations/darkenergy/peach.json" },
