@@ -3,9 +3,21 @@ const prisma = require("../lib/prisma")
 
 const router = express.Router()
 
+function isValidDevDepositRequest(req) {
+  const secret = process.env.DEV_DEPOSIT_SECRET
+
+  if (!secret) return false
+
+  return req.get("X-Dev-Deposit-Secret") === secret
+}
+
 router.post("/user", async (req, res) => {
   try {
     const { id, username } = req.body
+
+    if (!id) {
+      return res.status(400).json({ error: "id is required" })
+    }
 
     let user = await prisma.user.findUnique({
       where: { telegram_id: BigInt(id) }
@@ -58,9 +70,14 @@ router.get("/balance/:id", async (req, res) => {
 
 router.post("/deposit", async (req, res) => {
   try {
-    const { telegram_id, amount } = req.body
+    if (!isValidDevDepositRequest(req)) {
+      return res.status(403).json({ error: "deposit endpoint is disabled" })
+    }
 
-    if (!telegram_id || !amount || amount <= 0) {
+    const { telegram_id, amount } = req.body
+    const numericAmount = Number(amount)
+
+    if (!telegram_id || !numericAmount || numericAmount <= 0) {
       return res.status(400).json({ error: "invalid data" })
     }
 
@@ -74,15 +91,16 @@ router.post("/deposit", async (req, res) => {
       const updatedUser = await tx.user.update({
         where: { id: user.id },
         data: {
-          balance: { increment: amount }
+          balance: { increment: numericAmount }
         }
       })
 
       await tx.transaction.create({
         data: {
           userId: user.id,
-          amount,
-          type: "deposit"
+          amount: numericAmount,
+          type: "deposit",
+          externalId: `dev_deposit:${user.id}:${Date.now()}:${Math.random().toString(16).slice(2)}`,
         }
       })
 
@@ -99,8 +117,9 @@ router.post("/deposit", async (req, res) => {
 router.post("/withdraw", async (req, res) => {
   try {
     const { telegram_id, amount } = req.body
+    const numericAmount = Number(amount)
 
-    if (!telegram_id || !amount || amount <= 0) {
+    if (!telegram_id || !numericAmount || numericAmount <= 0) {
       return res.status(400).json({ error: "invalid data" })
     }
 
@@ -110,19 +129,29 @@ router.post("/withdraw", async (req, res) => {
       })
 
       if (!user) throw new Error("User not found")
-      if (user.balance < amount) throw new Error("Insufficient balance")
 
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
+      const debit = await tx.user.updateMany({
+        where: {
+          id: user.id,
+          balance: { gte: numericAmount },
+        },
         data: {
-          balance: { decrement: amount }
+          balance: { decrement: numericAmount }
         }
+      })
+
+      if (debit.count !== 1) {
+        throw new Error("Insufficient balance")
+      }
+
+      const updatedUser = await tx.user.findUnique({
+        where: { id: user.id },
       })
 
       await tx.transaction.create({
         data: {
           userId: user.id,
-          amount,
+          amount: numericAmount,
           type: "withdraw"
         }
       })
