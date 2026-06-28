@@ -51,11 +51,13 @@ model Transaction {
   userId      String
   amount      Int
   type        TransactionType
+  externalId  String?          @unique
   created_at  DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([type])
 }
 
 model InventoryItem {
@@ -77,6 +79,7 @@ model InventoryItem {
   @@index([userId])
   @@index([dropId])
   @@index([caseId])
+  @@index([isSold])
 }
 
 model CrashRound {
