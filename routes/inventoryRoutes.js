@@ -47,19 +47,31 @@ router.post("/inventory/sell", async (req, res) => {
         throw new Error("User not found")
       }
 
-      const item = await tx.inventoryItem.findUnique({
-        where: { id: inventoryItemId }
+      const item = await tx.inventoryItem.findFirst({
+        where: {
+          id: inventoryItemId,
+          userId: user.id,
+          isSold: false,
+        }
       })
 
       if (!item) {
-        throw new Error("Inventory item not found")
+        throw new Error("Inventory item not found or already sold")
       }
 
-      if (item.userId !== user.id) {
-        throw new Error("Inventory item does not belong to this user")
-      }
+      const sold = await tx.inventoryItem.updateMany({
+        where: {
+          id: item.id,
+          userId: user.id,
+          isSold: false,
+        },
+        data: {
+          isSold: true,
+          sold_at: new Date()
+        }
+      })
 
-      if (item.isSold) {
+      if (sold.count !== 1) {
         throw new Error("Inventory item already sold")
       }
 
@@ -67,14 +79,6 @@ router.post("/inventory/sell", async (req, res) => {
         where: { id: user.id },
         data: {
           balance: { increment: item.priceStars }
-        }
-      })
-
-      await tx.inventoryItem.update({
-        where: { id: item.id },
-        data: {
-          isSold: true,
-          sold_at: new Date()
         }
       })
 
