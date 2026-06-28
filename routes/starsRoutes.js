@@ -19,6 +19,12 @@ function createStarsRoutes() {
         })
       }
 
+      if (!BOT_TOKEN) {
+        return res.status(500).json({
+          error: "BOT_TOKEN is not configured",
+        })
+      }
+
       const numericAmount = Number(amount)
 
       const payload = `stars:${telegram_id}:${numericAmount}:${Date.now()}`
@@ -31,9 +37,10 @@ function createStarsRoutes() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: "GIFTON Balance Top-Up",
+            title: "UFO Balance Top-Up",
             description: `Пополнение баланса на ${numericAmount} ⭐`,
             payload,
+            provider_token: "",
             currency: "XTR",
             prices: [
               {
