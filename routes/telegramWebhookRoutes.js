@@ -150,14 +150,24 @@ function createTelegramWebhookRoutes() {
         const fromId = update.message?.from?.id
         const payload = String(successfulPayment.invoice_payload || "")
         const amountFromPayment = Number(successfulPayment.total_amount || 0)
+        const paymentChargeId = String(successfulPayment.telegram_payment_charge_id || "")
+        const externalId = paymentChargeId ? `telegram_stars:${paymentChargeId}` : null
 
-        if (!fromId || amountFromPayment <= 0) {
+        if (!fromId || amountFromPayment <= 0 || !externalId) {
+          return res.sendStatus(200)
+        }
+
+        const alreadyProcessed = await prisma.transaction.findUnique({
+          where: { externalId },
+        })
+
+        if (alreadyProcessed) {
+          console.log("PAYMENT ALREADY PROCESSED", { externalId })
           return res.sendStatus(200)
         }
 
         const payloadParts = payload.split(":")
         const payloadTelegramId = payloadParts[1] ? String(payloadParts[1]) : null
-
         const targetTelegramId = payloadTelegramId || String(fromId)
 
         const user = await prisma.user.findUnique({
@@ -169,10 +179,13 @@ function createTelegramWebhookRoutes() {
           return res.sendStatus(200)
         }
 
-        // ВАЖНО:
-        // Это MVP-вариант без защиты от дублей по telegram_payment_charge_id.
-        // Для продакшена лучше добавить external_id в transaction и проверять его.
         await prisma.$transaction(async (tx) => {
+          const duplicate = await tx.transaction.findUnique({
+            where: { externalId },
+          })
+
+          if (duplicate) return
+
           await tx.user.update({
             where: { id: user.id },
             data: {
@@ -185,6 +198,7 @@ function createTelegramWebhookRoutes() {
               userId: user.id,
               amount: amountFromPayment,
               type: "deposit",
+              externalId,
             },
           })
         })
@@ -192,6 +206,7 @@ function createTelegramWebhookRoutes() {
         console.log("PAYMENT BALANCE CREDITED", {
           telegram_id: targetTelegramId,
           amount: amountFromPayment,
+          externalId,
         })
 
         return res.sendStatus(200)
@@ -199,6 +214,11 @@ function createTelegramWebhookRoutes() {
 
       return res.sendStatus(200)
     } catch (error) {
+      if (error?.code === "P2002") {
+        console.log("PAYMENT DUPLICATE UNIQUE HIT")
+        return res.sendStatus(200)
+      }
+
       console.error("TELEGRAM WEBHOOK ERROR:", error)
       return res.sendStatus(200)
     }
