@@ -12,6 +12,7 @@ const { createCrashSocket } = require("./crash/crashSocket")
 const { createStarsRoutes } = require("./routes/starsRoutes")
 const { createTelegramWebhookRoutes } = require("./routes/telegramWebhookRoutes")
 const { createBonusRoutes } = require("./routes/bonusRoutes")
+const { createTelegramAuthMiddleware } = require("./middleware/telegramAuth")
 
 const { initLiveDrops } = require("./live/liveDropsEmitter")
 const { scheduleFakeDrop } = require("./live/fakeDrops")
@@ -22,9 +23,11 @@ const server = http.createServer(app)
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "X-Telegram-Init-Data", "X-Dev-Deposit-Secret"],
 }))
 
 app.use(express.json())
+app.use(createTelegramAuthMiddleware())
 
 const io = new Server(server, {
   cors: {
