@@ -70,13 +70,11 @@ router.post("/case/open", async (req, res) => {
       }
     })
 
-    console.log("LIVE PNG:", result.inventoryItem.png)
-
     emitLiveDrop({
-  image: `/drops/${result.inventoryItem.png}.png`,
-  name: result.inventoryItem.dropName,
-  price: result.inventoryItem.priceStars || 0,
-})
+      image: `/drops/${result.inventoryItem.png}.webp`,
+      name: result.inventoryItem.dropName,
+      price: result.inventoryItem.priceStars || 0,
+    })
 
     res.json({
       balance: result.balance,
