@@ -51,13 +51,14 @@ model Transaction {
   userId      String
   amount      Int
   type        TransactionType
-  externalId  String?          @unique
+  externalId  String?
   created_at  DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([type])
+  @@index([externalId])
 }
 
 model InventoryItem {
