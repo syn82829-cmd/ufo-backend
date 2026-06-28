@@ -53,8 +53,9 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
   router.post("/crash/bet", async (req, res) => {
     try {
       const { telegram_id, amount } = req.body
+      const numericAmount = Number(amount)
 
-      if (!telegram_id || !amount || Number(amount) <= 0) {
+      if (!telegram_id || !numericAmount || numericAmount <= 0) {
         return res.status(400).json({ error: "telegram_id and valid amount are required" })
       }
 
@@ -73,10 +74,6 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           throw new Error("User not found")
         }
 
-        if (user.balance < Number(amount)) {
-          throw new Error("Insufficient balance")
-        }
-
         const existingBet = await tx.crashBet.findFirst({
           where: {
             roundId: round.id,
@@ -88,19 +85,30 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           throw new Error("Bet already placed for this round")
         }
 
-        const updatedUser = await tx.user.update({
-          where: { id: user.id },
+        const debit = await tx.user.updateMany({
+          where: {
+            id: user.id,
+            balance: { gte: numericAmount },
+          },
           data: {
-            balance: { decrement: Number(amount) },
+            balance: { decrement: numericAmount },
             crash_games: { increment: 1 },
           }
+        })
+
+        if (debit.count !== 1) {
+          throw new Error("Insufficient balance")
+        }
+
+        const updatedUser = await tx.user.findUnique({
+          where: { id: user.id },
         })
 
         const bet = await tx.crashBet.create({
           data: {
             roundId: round.id,
             userId: user.id,
-            amount: Number(amount),
+            amount: numericAmount,
             status: "active",
           }
         })
@@ -190,6 +198,25 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
 
         const payout = Math.floor(Number(bet.amount) * liveMultiplier)
         const profit = Math.max(payout - Number(bet.amount), 0)
+        const cashedOutAt = getNow()
+
+        const cashout = await tx.crashBet.updateMany({
+          where: {
+            id: bet.id,
+            status: "active",
+          },
+          data: {
+            status: "cashed_out",
+            cashout_multiplier: liveMultiplier,
+            payout,
+            profit,
+            cashed_out_at: cashedOutAt,
+          }
+        })
+
+        if (cashout.count !== 1) {
+          throw new Error("Bet is already closed")
+        }
 
         const updatedUser = await tx.user.update({
           where: { id: user.id },
@@ -199,15 +226,8 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           }
         })
 
-        const updatedBet = await tx.crashBet.update({
+        const updatedBet = await tx.crashBet.findUnique({
           where: { id: bet.id },
-          data: {
-            status: "cashed_out",
-            cashout_multiplier: liveMultiplier,
-            payout,
-            profit,
-            cashed_out_at: getNow(),
-          }
         })
 
         return { updatedUser, updatedBet, payout, profit }
