@@ -32,15 +32,23 @@ router.post("/case/open", async (req, res) => {
         throw new Error("User not found")
       }
 
-      if (user.balance < caseConfig.price) {
+      const debit = await tx.user.updateMany({
+        where: {
+          id: user.id,
+          balance: { gte: caseConfig.price },
+        },
+        data: {
+          balance: { decrement: caseConfig.price },
+          cases_opened: { increment: 1 },
+        }
+      })
+
+      if (debit.count !== 1) {
         throw new Error("Insufficient balance")
       }
 
-      const updatedUser = await tx.user.update({
+      const updatedUser = await tx.user.findUnique({
         where: { id: user.id },
-        data: {
-          balance: { decrement: caseConfig.price }
-        }
       })
 
       const inventoryItem = await tx.inventoryItem.create({
