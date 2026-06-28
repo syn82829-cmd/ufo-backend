@@ -5,6 +5,7 @@ function createTelegramWebhookRoutes() {
   const router = express.Router()
 
   const BOT_TOKEN = process.env.BOT_TOKEN
+  const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET
 
   async function callTelegram(method, body) {
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -18,8 +19,18 @@ function createTelegramWebhookRoutes() {
     return response.json()
   }
 
+  function isValidWebhookRequest(req) {
+    if (!WEBHOOK_SECRET) return true
+
+    return req.get("X-Telegram-Bot-Api-Secret-Token") === WEBHOOK_SECRET
+  }
+
   router.post("/telegram/webhook", async (req, res) => {
     try {
+      if (!isValidWebhookRequest(req)) {
+        return res.sendStatus(403)
+      }
+
       const update = req.body || {}
 
       if (update.pre_checkout_query) {
