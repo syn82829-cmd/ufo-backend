@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "prisma migrate deploy && node server.js",
+    "start": "node server.js",
     "postinstall": "prisma generate",
     "migrate:manual": "prisma migrate deploy",
     "test": "echo \"Error: no test specified\" && exit 1"
