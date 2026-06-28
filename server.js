@@ -54,8 +54,46 @@ app.use(createCrashRoutes({
   emitCrashLive: crashSocket.emitCrashLive,
 }))
 
+async function registerTelegramWebhook() {
+  const BOT_TOKEN = process.env.BOT_TOKEN
+  const WEBHOOK_URL = process.env.TELEGRAM_WEBHOOK_URL
+  const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET
+
+  if (!BOT_TOKEN || !WEBHOOK_URL) {
+    console.log("Telegram webhook auto-register skipped")
+    return
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: WEBHOOK_URL,
+        secret_token: WEBHOOK_SECRET || undefined,
+        allowed_updates: ["message", "pre_checkout_query"],
+        drop_pending_updates: false,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data?.ok) {
+      console.error("TELEGRAM WEBHOOK REGISTER ERROR:", data)
+      return
+    }
+
+    console.log("Telegram webhook registered:", WEBHOOK_URL)
+  } catch (err) {
+    console.error("TELEGRAM WEBHOOK REGISTER FAILED:", err)
+  }
+}
+
 const PORT = process.env.PORT || 3000
 
 server.listen(PORT, () => {
   console.log("Server started on port", PORT)
+  registerTelegramWebhook()
 })
