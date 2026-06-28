@@ -157,7 +157,7 @@ function createTelegramWebhookRoutes() {
           return res.sendStatus(200)
         }
 
-        const alreadyProcessed = await prisma.transaction.findUnique({
+        const alreadyProcessed = await prisma.transaction.findFirst({
           where: { externalId },
         })
 
@@ -180,7 +180,7 @@ function createTelegramWebhookRoutes() {
         }
 
         await prisma.$transaction(async (tx) => {
-          const duplicate = await tx.transaction.findUnique({
+          const duplicate = await tx.transaction.findFirst({
             where: { externalId },
           })
 
@@ -214,11 +214,6 @@ function createTelegramWebhookRoutes() {
 
       return res.sendStatus(200)
     } catch (error) {
-      if (error?.code === "P2002") {
-        console.log("PAYMENT DUPLICATE UNIQUE HIT")
-        return res.sendStatus(200)
-      }
-
       console.error("TELEGRAM WEBHOOK ERROR:", error)
       return res.sendStatus(200)
     }
