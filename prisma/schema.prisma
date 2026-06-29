@@ -41,9 +41,18 @@ model User {
   bonus_friend_invited       Boolean         @default(false)
   daily_bonus_last_claim_at  DateTime?
 
+  referral_code              String?
+  referred_by_id             String?
+  referred_at                DateTime?
+  referral_earned            Int             @default(0)
+  referral_withdrawn         Int             @default(0)
+
   transactions               Transaction[]
   inventory                  InventoryItem[]
   crashBets                  CrashBet[]
+
+  @@index([referral_code])
+  @@index([referred_by_id])
 }
 
 model Transaction {
