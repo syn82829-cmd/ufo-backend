@@ -12,6 +12,7 @@ const { createCrashSocket } = require("./crash/crashSocket")
 const { createStarsRoutes } = require("./routes/starsRoutes")
 const { createTelegramWebhookRoutes } = require("./routes/telegramWebhookRoutes")
 const { createBonusRoutes } = require("./routes/bonusRoutes")
+const { createReferralRoutes } = require("./routes/referralRoutes")
 const { createTelegramAuthMiddleware } = require("./middleware/telegramAuth")
 
 const { initLiveDrops } = require("./live/liveDropsEmitter")
@@ -52,6 +53,7 @@ app.use(transactionRoutes)
 app.use(createStarsRoutes())
 app.use(createTelegramWebhookRoutes())
 app.use(createBonusRoutes())
+app.use(createReferralRoutes())
 app.use(createCrashRoutes({
   emitCrashState: crashSocket.emitCrashState,
   emitCrashLive: crashSocket.emitCrashLive,
