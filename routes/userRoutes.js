@@ -1,5 +1,6 @@
 const express = require("express")
 const prisma = require("../lib/prisma")
+const { createUniqueReferralCode } = require("../utils/referralCode")
 
 const router = express.Router()
 
@@ -24,12 +25,17 @@ router.post("/user", async (req, res) => {
     })
 
     if (!user) {
-      user = await prisma.user.create({
-        data: {
-          telegram_id: BigInt(id),
-          username,
-          balance: 0
-        }
+      user = await prisma.$transaction(async (tx) => {
+        const referralCode = await createUniqueReferralCode(tx)
+
+        return tx.user.create({
+          data: {
+            telegram_id: BigInt(id),
+            username,
+            balance: 0,
+            referral_code: referralCode,
+          }
+        })
       })
     } else if (username && user.username !== username) {
       user = await prisma.user.update({
@@ -43,6 +49,8 @@ router.post("/user", async (req, res) => {
       telegram_id: user.telegram_id.toString(),
       username: user.username,
       balance: user.balance,
+      referralCode: user.referral_code || null,
+      referredById: user.referred_by_id || null,
       casesOpened: user.cases_opened ?? 0,
       crashGamesPlayed: user.crash_games ?? 0,
       crashWins: user.crash_wins ?? 0,
