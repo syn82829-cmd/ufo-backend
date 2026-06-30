@@ -37,6 +37,39 @@ async function getDailyGiftClaimedCount(db = prisma) {
 
 function createBonusRoutes() {
   const router = express.Router()
+  const BOT_TOKEN = process.env.BOT_TOKEN
+  const CHANNEL_USERNAME = String(
+    process.env.TELEGRAM_CHANNEL_USERNAME ||
+    process.env.BONUS_CHANNEL_USERNAME ||
+    "@giftonchanneI"
+  ).replace(/^https:\/\/t\.me\//i, "@").replace(/^t\.me\//i, "@").replace(/^@?/, "@")
+
+  async function callTelegram(method, body) {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+
+    return response.json()
+  }
+
+  async function checkTelegramChannelMember(telegramId) {
+    if (!BOT_TOKEN || !telegramId || !CHANNEL_USERNAME) return false
+
+    const result = await callTelegram("getChatMember", {
+      chat_id: CHANNEL_USERNAME,
+      user_id: Number(telegramId),
+    })
+
+    if (!result?.ok) {
+      console.error("TELEGRAM GET CHAT MEMBER ERROR:", result)
+      return false
+    }
+
+    const status = result.result?.status
+    return ["creator", "administrator", "member"].includes(status)
+  }
 
   // ПОЛУЧИТЬ СОСТОЯНИЕ БОНУСА
   router.get("/bonus/state/:telegram_id", async (req, res) => {
@@ -88,6 +121,7 @@ function createBonusRoutes() {
         claimedCount,
         claimedLimit: DAILY_GIFT_LIMIT,
         dailyGiftReservedToday,
+        channelUsername: CHANNEL_USERNAME,
       })
     } catch (error) {
       console.error("BONUS STATE ERROR:", error)
@@ -164,7 +198,6 @@ function createBonusRoutes() {
   })
 
   // РУЧНАЯ ОТМЕТКА ПРИГЛАШЕННОГО ДРУГА
-  // потом привяжем к реферальной системе автоматически
   router.post("/bonus/friend", async (req, res) => {
     try {
       const { telegram_id } = req.body
@@ -212,9 +245,7 @@ function createBonusRoutes() {
         return res.status(404).json({ error: "user not found" })
       }
 
-      // ВРЕМЕННО: заглушка
-      // следующим шагом подключим getChatMember и реальную проверку канала
-      const isSubscribed = false
+      const isSubscribed = await checkTelegramChannelMember(telegram_id)
 
       await prisma.user.update({
         where: { id: user.id },
@@ -224,7 +255,9 @@ function createBonusRoutes() {
       })
 
       res.json({
+        ok: true,
         channelSubscribed: isSubscribed,
+        channelUsername: CHANNEL_USERNAME,
       })
     } catch (error) {
       console.error("BONUS CHECK CHANNEL ERROR:", error)
