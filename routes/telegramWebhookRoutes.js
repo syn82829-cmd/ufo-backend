@@ -1,5 +1,9 @@
 const express = require("express")
 const prisma = require("../lib/prisma")
+const {
+  normalizeReferralCode,
+  createUniqueReferralCode,
+} = require("../utils/referralCode")
 
 function createTelegramWebhookRoutes() {
   const router = express.Router()
@@ -7,6 +11,13 @@ function createTelegramWebhookRoutes() {
   const BOT_TOKEN = process.env.BOT_TOKEN
   const WEBHOOK_URL = process.env.TELEGRAM_WEBHOOK_URL
   const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET
+  const MINI_APP_URL =
+    process.env.MINI_APP_URL ||
+    process.env.TELEGRAM_MINI_APP_URL ||
+    process.env.FRONTEND_URL ||
+    ""
+  const TELEGRAM_CHANNEL_URL = process.env.TELEGRAM_CHANNEL_URL || ""
+  const BOT_WELCOME_IMAGE_URL = process.env.BOT_WELCOME_IMAGE_URL || ""
 
   async function callTelegram(method, body) {
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -29,6 +40,166 @@ function createTelegramWebhookRoutes() {
     if (!WEBHOOK_SECRET) return true
 
     return req.get("X-Telegram-Bot-Api-Secret-Token") === WEBHOOK_SECRET
+  }
+
+  function getStartPayload(text) {
+    const value = String(text || "").trim()
+    if (!value.startsWith("/start")) return ""
+
+    return value.split(/\s+/)[1] || ""
+  }
+
+  function getReferralCodeFromStartPayload(payload) {
+    const raw = String(payload || "").trim()
+    if (!raw) return ""
+
+    return normalizeReferralCode(
+      raw
+        .replace(/^ref[_-]/i, "")
+        .replace(/^r[_-]/i, "")
+    )
+  }
+
+  function getDisplayName(from) {
+    return from?.first_name || from?.username || "друг"
+  }
+
+  function buildWelcomeKeyboard() {
+    const rows = []
+
+    if (MINI_APP_URL) {
+      rows.push([
+        {
+          text: "🚀 Открыть приложение",
+          web_app: { url: MINI_APP_URL },
+        },
+      ])
+    }
+
+    if (TELEGRAM_CHANNEL_URL) {
+      rows.push([
+        {
+          text: "💙 Открыть канал",
+          url: TELEGRAM_CHANNEL_URL,
+        },
+      ])
+    }
+
+    return rows.length ? { inline_keyboard: rows } : undefined
+  }
+
+  async function ensureTelegramUser(from) {
+    const telegramId = from?.id
+    if (!telegramId) return null
+
+    const username = from?.username || [from?.first_name, from?.last_name].filter(Boolean).join(" ") || null
+
+    return prisma.$transaction(async (tx) => {
+      let user = await tx.user.findUnique({
+        where: { telegram_id: BigInt(telegramId) },
+      })
+
+      if (!user) {
+        const referralCode = await createUniqueReferralCode(tx)
+
+        user = await tx.user.create({
+          data: {
+            telegram_id: BigInt(telegramId),
+            username,
+            balance: 0,
+            referral_code: referralCode,
+          },
+        })
+      } else if (username && user.username !== username) {
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: { username },
+        })
+      }
+
+      return user
+    })
+  }
+
+  async function applyReferralFromStart({ user, referralCode }) {
+    if (!user || !referralCode || user.referred_by_id) return null
+
+    return prisma.$transaction(async (tx) => {
+      const currentUser = await tx.user.findUnique({
+        where: { id: user.id },
+      })
+
+      if (!currentUser || currentUser.referred_by_id) {
+        return { ok: true, alreadyApplied: true }
+      }
+
+      const referrer = await tx.user.findFirst({
+        where: { referral_code: referralCode },
+      })
+
+      if (!referrer || referrer.id === currentUser.id) {
+        return { ok: false }
+      }
+
+      const linked = await tx.user.updateMany({
+        where: {
+          id: currentUser.id,
+          referred_by_id: null,
+        },
+        data: {
+          referred_by_id: referrer.id,
+          referred_at: new Date(),
+        },
+      })
+
+      if (linked.count !== 1) {
+        return { ok: true, alreadyApplied: true }
+      }
+
+      await tx.user.update({
+        where: { id: referrer.id },
+        data: {
+          bonus_friend_invited: true,
+        },
+      })
+
+      return { ok: true, alreadyApplied: false, referrerId: referrer.id }
+    })
+  }
+
+  async function sendStartMessage({ chatId, from, referralApplied }) {
+    const name = getDisplayName(from)
+    const keyboard = buildWelcomeKeyboard()
+    const referralLine = referralApplied?.ok && !referralApplied?.alreadyApplied
+      ? "\n\n🎁 Приглашение засчитано. Открывай приложение и забирай бонусы."
+      : ""
+
+    const text =
+      `👋 <b>Привет, ${name}!</b>\n\n` +
+      `🚀 Добро пожаловать в <b>UFO</b> — открывай кейсы, забирай подарки и собирай звёзды каждый день.\n\n` +
+      `🎁 Заходи в приложение, получай ежедневный подарок и приглашай друзей.${referralLine}`
+
+    if (BOT_WELCOME_IMAGE_URL) {
+      const photoResult = await callTelegram("sendPhoto", {
+        chat_id: chatId,
+        photo: BOT_WELCOME_IMAGE_URL,
+        caption: text,
+        parse_mode: "HTML",
+        reply_markup: keyboard,
+      })
+
+      if (photoResult?.ok) return photoResult
+
+      console.error("TELEGRAM SEND PHOTO ERROR:", photoResult)
+    }
+
+    return callTelegram("sendMessage", {
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+      reply_markup: keyboard,
+    })
   }
 
   router.get("/telegram/webhook-status", async (req, res) => {
@@ -54,6 +225,9 @@ function createTelegramWebhookRoutes() {
           webhookUrl: Boolean(WEBHOOK_URL),
           webhookSecret: Boolean(WEBHOOK_SECRET),
           expectedWebhookUrl: WEBHOOK_URL || null,
+          miniAppUrl: Boolean(MINI_APP_URL),
+          channelUrl: Boolean(TELEGRAM_CHANNEL_URL),
+          welcomeImage: Boolean(BOT_WELCOME_IMAGE_URL),
         },
         telegram: info,
       })
@@ -127,6 +301,35 @@ function createTelegramWebhookRoutes() {
           console.error("PRE CHECKOUT ANSWER ERROR:", result)
         } else {
           console.log("PRE CHECKOUT QUERY ANSWERED")
+        }
+
+        return res.sendStatus(200)
+      }
+
+      const messageText = String(update.message?.text || "").trim()
+
+      if (messageText.startsWith("/start")) {
+        const from = update.message?.from
+        const chatId = update.message?.chat?.id
+
+        if (!from?.id || !chatId) {
+          return res.sendStatus(200)
+        }
+
+        const user = await ensureTelegramUser(from)
+        const referralCode = getReferralCodeFromStartPayload(getStartPayload(messageText))
+        const referralApplied = referralCode
+          ? await applyReferralFromStart({ user, referralCode })
+          : null
+
+        const result = await sendStartMessage({
+          chatId,
+          from,
+          referralApplied,
+        })
+
+        if (!result?.ok) {
+          console.error("TELEGRAM START MESSAGE ERROR:", result)
         }
 
         return res.sendStatus(200)
