@@ -3,6 +3,8 @@ const prisma = require("../lib/prisma")
 
 const DAILY_BONUS_REWARD = 10
 const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000
+const DAILY_GIFT_LIMIT = 500
+const DAILY_GIFT_EXTERNAL_PREFIX = "bonus_daily_gift"
 
 function isCooldownFinished(lastClaimAt) {
   if (!lastClaimAt) return true
@@ -18,6 +20,21 @@ function getTimeLeftMs(lastClaimAt) {
   return Math.max(0, nextClaimAt - Date.now())
 }
 
+function getDailyGiftExternalId(userId, date = new Date()) {
+  const dayKey = date.toISOString().slice(0, 10)
+  return `${DAILY_GIFT_EXTERNAL_PREFIX}:${dayKey}:${userId}`
+}
+
+async function getDailyGiftClaimedCount(db = prisma) {
+  return db.transaction.count({
+    where: {
+      externalId: {
+        startsWith: `${DAILY_GIFT_EXTERNAL_PREFIX}:`,
+      },
+    },
+  })
+}
+
 function createBonusRoutes() {
   const router = express.Router()
 
@@ -30,9 +47,12 @@ function createBonusRoutes() {
         return res.status(400).json({ error: "telegram_id is required" })
       }
 
-      const user = await prisma.user.findUnique({
-        where: { telegram_id: BigInt(telegramId) },
-      })
+      const [user, claimedCount] = await Promise.all([
+        prisma.user.findUnique({
+          where: { telegram_id: BigInt(telegramId) },
+        }),
+        getDailyGiftClaimedCount(),
+      ])
 
       if (!user) {
         return res.status(404).json({ error: "user not found" })
@@ -41,6 +61,16 @@ function createBonusRoutes() {
       const channelSubscribed = Boolean(user.bonus_channel_subscribed ?? false)
       const friendInvited = Boolean(user.bonus_friend_invited ?? false)
       const lastClaimAt = user.daily_bonus_last_claim_at || null
+      const todayExternalId = getDailyGiftExternalId(user.id)
+      const dailyGiftReservedToday = Boolean(
+        await prisma.transaction.findFirst({
+          where: {
+            userId: user.id,
+            externalId: todayExternalId,
+          },
+          select: { id: true },
+        })
+      )
 
       const conditionsMet = channelSubscribed && friendInvited
       const cooldownFinished = isCooldownFinished(lastClaimAt)
@@ -55,10 +85,81 @@ function createBonusRoutes() {
         lastClaimAt,
         cooldownMs: DAILY_BONUS_COOLDOWN_MS,
         timeLeftMs: getTimeLeftMs(lastClaimAt),
+        claimedCount,
+        claimedLimit: DAILY_GIFT_LIMIT,
+        dailyGiftReservedToday,
       })
     } catch (error) {
       console.error("BONUS STATE ERROR:", error)
       res.status(500).json({ error: error.message || "bonus state error" })
+    }
+  })
+
+  // ЗАСЧИТАТЬ ЕЖЕДНЕВНЫЙ ПОДАРОК В ОБЩУЮ ШКАЛУ 0/500
+  router.post("/bonus/reserve-gift", async (req, res) => {
+    try {
+      const { telegram_id } = req.body
+
+      if (!telegram_id) {
+        return res.status(400).json({ error: "telegram_id is required" })
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+          where: { telegram_id: BigInt(telegram_id) },
+          select: { id: true },
+        })
+
+        if (!user) {
+          throw new Error("User not found")
+        }
+
+        const claimedCount = await getDailyGiftClaimedCount(tx)
+        const todayExternalId = getDailyGiftExternalId(user.id)
+
+        const alreadyReserved = await tx.transaction.findFirst({
+          where: {
+            userId: user.id,
+            externalId: todayExternalId,
+          },
+          select: { id: true },
+        })
+
+        if (alreadyReserved) {
+          return {
+            claimedCount,
+            alreadyReserved: true,
+          }
+        }
+
+        if (claimedCount >= DAILY_GIFT_LIMIT) {
+          throw new Error("Daily gift limit reached")
+        }
+
+        await tx.transaction.create({
+          data: {
+            userId: user.id,
+            amount: 0,
+            type: "deposit",
+            externalId: todayExternalId,
+          },
+        })
+
+        return {
+          claimedCount: claimedCount + 1,
+          alreadyReserved: false,
+        }
+      })
+
+      res.json({
+        ok: true,
+        claimedCount: result.claimedCount,
+        claimedLimit: DAILY_GIFT_LIMIT,
+        alreadyReserved: result.alreadyReserved,
+      })
+    } catch (error) {
+      console.error("BONUS RESERVE GIFT ERROR:", error)
+      res.status(500).json({ error: error.message || "bonus reserve gift error" })
     }
   })
 
