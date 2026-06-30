@@ -17,7 +17,13 @@ function createTelegramWebhookRoutes() {
     process.env.FRONTEND_URL ||
     ""
   const TELEGRAM_CHANNEL_URL = process.env.TELEGRAM_CHANNEL_URL || ""
+  const BOT_USERNAME = String(
+    process.env.BOT_USERNAME ||
+    process.env.TELEGRAM_BOT_USERNAME ||
+    "giftsonbot"
+  ).replace(/^@/, "")
   const BOT_WELCOME_IMAGE_URL = process.env.BOT_WELCOME_IMAGE_URL || ""
+  const BOT_SHARE_IMAGE_URL = process.env.BOT_SHARE_IMAGE_URL || BOT_WELCOME_IMAGE_URL || ""
 
   async function callTelegram(method, body) {
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -64,14 +70,37 @@ function createTelegramWebhookRoutes() {
     return from?.first_name || from?.username || "друг"
   }
 
-  function buildWelcomeKeyboard() {
-    const rows = []
+  function buildBotReferralLink(referralCode) {
+    const code = normalizeReferralCode(referralCode)
+    if (!BOT_USERNAME || !code) return ""
 
-    if (MINI_APP_URL) {
+    return `https://t.me/${BOT_USERNAME}?start=ref_${code}`
+  }
+
+  function buildAppUrl(referralCode = "") {
+    if (!MINI_APP_URL) return ""
+
+    const code = normalizeReferralCode(referralCode)
+    if (!code) return MINI_APP_URL
+
+    try {
+      const url = new URL(MINI_APP_URL)
+      url.searchParams.set("startapp", `ref_${code}`)
+      return url.toString()
+    } catch {
+      return MINI_APP_URL
+    }
+  }
+
+  function buildWelcomeKeyboard(referralCode = "") {
+    const rows = []
+    const appUrl = buildAppUrl(referralCode)
+
+    if (appUrl) {
       rows.push([
         {
           text: "🚀 Открыть приложение",
-          web_app: { url: MINI_APP_URL },
+          web_app: { url: appUrl },
         },
       ])
     }
@@ -227,7 +256,9 @@ function createTelegramWebhookRoutes() {
           expectedWebhookUrl: WEBHOOK_URL || null,
           miniAppUrl: Boolean(MINI_APP_URL),
           channelUrl: Boolean(TELEGRAM_CHANNEL_URL),
+          botUsername: BOT_USERNAME || null,
           welcomeImage: Boolean(BOT_WELCOME_IMAGE_URL),
+          shareImage: Boolean(BOT_SHARE_IMAGE_URL),
         },
         telegram: info,
       })
@@ -237,6 +268,86 @@ function createTelegramWebhookRoutes() {
         ok: false,
         error: error.message || "Webhook status error",
       })
+    }
+  })
+
+  router.post("/telegram/share/referral", async (req, res) => {
+    try {
+      const { telegram_id, referral_code } = req.body || {}
+
+      if (!BOT_TOKEN || !telegram_id) {
+        return res.status(400).json({ error: "telegram_id is required" })
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { telegram_id: BigInt(telegram_id) },
+      })
+
+      if (!user) {
+        return res.status(404).json({ error: "user not found" })
+      }
+
+      const referralCode = normalizeReferralCode(referral_code || user.referral_code)
+      const referralLink = buildBotReferralLink(referralCode)
+
+      if (!referralCode || !referralLink) {
+        return res.status(400).json({ error: "referral link is not available" })
+      }
+
+      const caption = "Заходи и выбивай звёзды и подарки в бесплатном кейсе!💙"
+      const fallbackText = `${referralLink}\n\nОткрывай бесплатный кейс каждый день!\n\n${caption}`
+      const replyMarkup = buildWelcomeKeyboard(referralCode)
+
+      const result = BOT_SHARE_IMAGE_URL
+        ? {
+            type: "photo",
+            id: `gifton_ref_${referralCode}_${Date.now()}`,
+            photo_url: BOT_SHARE_IMAGE_URL,
+            thumbnail_url: BOT_SHARE_IMAGE_URL,
+            caption,
+            parse_mode: "HTML",
+            reply_markup: replyMarkup,
+          }
+        : {
+            type: "article",
+            id: `gifton_ref_${referralCode}_${Date.now()}`,
+            title: "Открывай бесплатный кейс каждый день!",
+            description: caption,
+            input_message_content: {
+              message_text: fallbackText,
+              disable_web_page_preview: false,
+            },
+            reply_markup: replyMarkup,
+          }
+
+      const prepared = await callTelegram("savePreparedInlineMessage", {
+        user_id: Number(telegram_id),
+        result,
+        allow_user_chats: true,
+        allow_bot_chats: true,
+        allow_group_chats: true,
+        allow_channel_chats: false,
+      })
+
+      if (!prepared?.ok || !prepared?.result?.id) {
+        console.error("TELEGRAM PREPARE REFERRAL SHARE ERROR:", prepared)
+        return res.json({
+          ok: false,
+          referralLink,
+          fallbackText,
+          error: prepared?.description || "prepare share failed",
+        })
+      }
+
+      return res.json({
+        ok: true,
+        preparedInlineMessageId: prepared.result.id,
+        referralLink,
+        fallbackText,
+      })
+    } catch (error) {
+      console.error("TELEGRAM REFERRAL SHARE ERROR:", error)
+      return res.status(500).json({ error: error.message || "referral share error" })
     }
   })
 
