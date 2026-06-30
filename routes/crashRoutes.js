@@ -42,6 +42,37 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
     }
   })
 
+  router.get("/crash/history", async (req, res) => {
+    try {
+      const limit = Math.min(Math.max(Number(req.query.limit || 14), 1), 24)
+
+      const rounds = await prisma.crashRound.findMany({
+        where: {
+          status: "crashed",
+          crash_point: { not: null },
+        },
+        orderBy: { round_number: "desc" },
+        take: limit,
+        select: {
+          id: true,
+          round_number: true,
+          crash_point: true,
+          crashed_at: true,
+        },
+      })
+
+      res.json(rounds.map((round) => ({
+        id: round.id,
+        roundNumber: round.round_number,
+        multiplier: Number(round.crash_point || 1),
+        crashedAt: round.crashed_at?.toISOString?.() || null,
+      })))
+    } catch (error) {
+      console.error("CRASH HISTORY ERROR:", error)
+      res.status(500).json({ error: error.message || "crash history error" })
+    }
+  })
+
   router.get("/crash/live", async (req, res) => {
     try {
       res.json(getLiveBets())
