@@ -24,7 +24,7 @@ function createTelegramWebhookRoutes() {
   ).replace(/^@/, "")
   const DEFAULT_SHARE_IMAGE_URL = (() => {
     try {
-      return MINI_APP_URL ? new URL("/pod.JPG", MINI_APP_URL).toString() : ""
+      return MINI_APP_URL ? new URL("/ui/pod.JPG", MINI_APP_URL).toString() : ""
     } catch {
       return ""
     }
@@ -108,6 +108,30 @@ function createTelegramWebhookRoutes() {
         {
           text: "🚀 Открыть приложение",
           web_app: { url: appUrl },
+        },
+      ])
+    }
+
+    if (TELEGRAM_CHANNEL_URL) {
+      rows.push([
+        {
+          text: "💙 Открыть канал",
+          url: TELEGRAM_CHANNEL_URL,
+        },
+      ])
+    }
+
+    return rows.length ? { inline_keyboard: rows } : undefined
+  }
+
+  function buildShareKeyboard(referralLink) {
+    const rows = []
+
+    if (referralLink) {
+      rows.push([
+        {
+          text: "🎁 Забрать подарок",
+          url: referralLink,
         },
       ])
     }
@@ -303,9 +327,9 @@ function createTelegramWebhookRoutes() {
       }
 
       const title = "Забирай бесплатный подарок каждый день!"
-      const caption = "Открывай кейсы и выигрывай NFT💙"
-      const fallbackText = `${referralLink}\n\n${title}\n\n${caption}`
-      const replyMarkup = buildWelcomeKeyboard(referralCode)
+      const description = "Открывай кейсы и выигрывай NFT💙"
+      const shareText = `${referralLink}\n\n${title}\n\n${description}`
+      const replyMarkup = buildShareKeyboard(referralLink)
 
       const result = BOT_SHARE_IMAGE_URL
         ? {
@@ -313,7 +337,7 @@ function createTelegramWebhookRoutes() {
             id: `gifton_ref_${referralCode}_${Date.now()}`,
             photo_url: BOT_SHARE_IMAGE_URL,
             thumbnail_url: BOT_SHARE_IMAGE_URL,
-            caption,
+            caption: shareText,
             parse_mode: "HTML",
             reply_markup: replyMarkup,
           }
@@ -321,9 +345,9 @@ function createTelegramWebhookRoutes() {
             type: "article",
             id: `gifton_ref_${referralCode}_${Date.now()}`,
             title,
-            description: caption,
+            description,
             input_message_content: {
-              message_text: fallbackText,
+              message_text: shareText,
               disable_web_page_preview: false,
             },
             reply_markup: replyMarkup,
@@ -343,7 +367,7 @@ function createTelegramWebhookRoutes() {
         return res.json({
           ok: false,
           referralLink,
-          fallbackText,
+          fallbackText: shareText,
           error: prepared?.description || "prepare share failed",
         })
       }
@@ -352,7 +376,7 @@ function createTelegramWebhookRoutes() {
         ok: true,
         preparedInlineMessageId: prepared.result.id,
         referralLink,
-        fallbackText,
+        fallbackText: shareText,
       })
     } catch (error) {
       console.error("TELEGRAM REFERRAL SHARE ERROR:", error)
