@@ -22,8 +22,15 @@ function createTelegramWebhookRoutes() {
     process.env.TELEGRAM_BOT_USERNAME ||
     "giftsonbot"
   ).replace(/^@/, "")
+  const DEFAULT_SHARE_IMAGE_URL = (() => {
+    try {
+      return MINI_APP_URL ? new URL("/pod.JPG", MINI_APP_URL).toString() : ""
+    } catch {
+      return ""
+    }
+  })()
   const BOT_WELCOME_IMAGE_URL = process.env.BOT_WELCOME_IMAGE_URL || ""
-  const BOT_SHARE_IMAGE_URL = process.env.BOT_SHARE_IMAGE_URL || BOT_WELCOME_IMAGE_URL || ""
+  const BOT_SHARE_IMAGE_URL = process.env.BOT_SHARE_IMAGE_URL || BOT_WELCOME_IMAGE_URL || DEFAULT_SHARE_IMAGE_URL
 
   async function callTelegram(method, body) {
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
@@ -259,6 +266,7 @@ function createTelegramWebhookRoutes() {
           botUsername: BOT_USERNAME || null,
           welcomeImage: Boolean(BOT_WELCOME_IMAGE_URL),
           shareImage: Boolean(BOT_SHARE_IMAGE_URL),
+          shareImageUrl: BOT_SHARE_IMAGE_URL || null,
         },
         telegram: info,
       })
@@ -294,8 +302,9 @@ function createTelegramWebhookRoutes() {
         return res.status(400).json({ error: "referral link is not available" })
       }
 
-      const caption = "Заходи и выбивай звёзды и подарки в бесплатном кейсе!💙"
-      const fallbackText = `${referralLink}\n\nОткрывай бесплатный кейс каждый день!\n\n${caption}`
+      const title = "Забирай бесплатный подарок каждый день!"
+      const caption = "Открывай кейсы и выигрывай NFT💙"
+      const fallbackText = `${referralLink}\n\n${title}\n\n${caption}`
       const replyMarkup = buildWelcomeKeyboard(referralCode)
 
       const result = BOT_SHARE_IMAGE_URL
@@ -311,7 +320,7 @@ function createTelegramWebhookRoutes() {
         : {
             type: "article",
             id: `gifton_ref_${referralCode}_${Date.now()}`,
-            title: "Открывай бесплатный кейс каждый день!",
+            title,
             description: caption,
             input_message_content: {
               message_text: fallbackText,
