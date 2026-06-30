@@ -18,7 +18,8 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
 
       if (telegram_id && round?.id) {
         const user = await prisma.user.findUnique({
-          where: { telegram_id: BigInt(telegram_id) }
+          where: { telegram_id: BigInt(telegram_id) },
+          select: { id: true },
         })
 
         if (user) {
@@ -53,7 +54,7 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
   router.post("/crash/bet", async (req, res) => {
     try {
       const { telegram_id, amount } = req.body
-      const numericAmount = Number(amount)
+      const numericAmount = Math.floor(Number(amount))
 
       if (!telegram_id || !numericAmount || numericAmount <= 0) {
         return res.status(400).json({ error: "telegram_id and valid amount are required" })
@@ -67,22 +68,20 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
 
       const result = await prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({
-          where: { telegram_id: BigInt(telegram_id) }
+          where: { telegram_id: BigInt(telegram_id) },
+          select: {
+            id: true,
+            telegram_id: true,
+            username: true,
+            balance: true,
+            cases_opened: true,
+            crash_games: true,
+            crash_wins: true,
+          }
         })
 
         if (!user) {
           throw new Error("User not found")
-        }
-
-        const existingBet = await tx.crashBet.findFirst({
-          where: {
-            roundId: round.id,
-            userId: user.id,
-          }
-        })
-
-        if (existingBet) {
-          throw new Error("Bet already placed for this round")
         }
 
         const debit = await tx.user.updateMany({
@@ -100,10 +99,6 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           throw new Error("Insufficient balance")
         }
 
-        const updatedUser = await tx.user.findUnique({
-          where: { id: user.id },
-        })
-
         const bet = await tx.crashBet.create({
           data: {
             roundId: round.id,
@@ -113,7 +108,11 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           }
         })
 
-        return { updatedUser, bet, user }
+        return {
+          user,
+          bet,
+          balance: Number(user.balance) - numericAmount,
+        }
       })
 
       setLiveBet({
@@ -129,13 +128,13 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
           telegram_id: result.user.telegram_id.toString(),
           username: result.user.username,
           casesOpened: result.user.cases_opened ?? 0,
-          crashGamesPlayed: result.user.crash_games ?? 0,
+          crashGamesPlayed: (result.user.crash_games ?? 0) + 1,
           crashWins: result.user.crash_wins ?? 0,
         },
       })
 
       res.json({
-        balance: result.updatedUser.balance,
+        balance: result.balance,
         bet: result.bet,
         roundId: round.id,
         roundNumber: round.round_number,
@@ -150,7 +149,19 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
       })
     } catch (error) {
       console.error("CRASH BET ERROR:", error)
-      res.status(500).json({ error: error.message || "crash bet error" })
+
+      if (error?.code === "P2002") {
+        return res.status(409).json({ error: "Bet already placed for this round" })
+      }
+
+      const message = error.message || "crash bet error"
+      const statusCode =
+        message === "Insufficient balance" ||
+        message === "User not found"
+          ? 400
+          : 500
+
+      res.status(statusCode).json({ error: message })
     }
   })
 
@@ -177,7 +188,8 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
 
       const result = await prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({
-          where: { telegram_id: BigInt(telegram_id) }
+          where: { telegram_id: BigInt(telegram_id) },
+          select: { id: true },
         })
 
         if (!user) {
