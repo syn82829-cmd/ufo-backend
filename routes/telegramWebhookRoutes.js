@@ -84,6 +84,19 @@ function createTelegramWebhookRoutes() {
     return `https://t.me/${BOT_USERNAME}?start=ref_${code}`
   }
 
+  function withCacheBuster(url) {
+    if (!url) return ""
+
+    try {
+      const parsed = new URL(url)
+      parsed.searchParams.set("v", `gifton_${Date.now()}`)
+      return parsed.toString()
+    } catch {
+      const separator = String(url).includes("?") ? "&" : "?"
+      return `${url}${separator}v=gifton_${Date.now()}`
+    }
+  }
+
   function buildAppUrl(referralCode = "") {
     if (!MINI_APP_URL) return ""
 
@@ -330,13 +343,16 @@ function createTelegramWebhookRoutes() {
       const description = "Открывай кейсы и выигрывай NFT💙"
       const shareText = `${referralLink}\n\n${title}\n\n${description}`
       const replyMarkup = buildShareKeyboard(referralLink)
+      const shareImageUrl = withCacheBuster(BOT_SHARE_IMAGE_URL)
 
-      const result = BOT_SHARE_IMAGE_URL
+      const result = shareImageUrl
         ? {
             type: "photo",
             id: `gifton_ref_${referralCode}_${Date.now()}`,
-            photo_url: BOT_SHARE_IMAGE_URL,
-            thumbnail_url: BOT_SHARE_IMAGE_URL,
+            photo_url: shareImageUrl,
+            thumbnail_url: shareImageUrl,
+            photo_width: 1280,
+            photo_height: 720,
             caption: shareText,
             parse_mode: "HTML",
             reply_markup: replyMarkup,
