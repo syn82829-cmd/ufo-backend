@@ -187,21 +187,19 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
       }
 
       const result = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.findUnique({
-          where: { telegram_id: BigInt(telegram_id) },
-          select: { id: true },
-        })
-
-        if (!user) {
-          throw new Error("User not found")
-        }
-
         const bet = await tx.crashBet.findFirst({
           where: {
             roundId: round.id,
-            userId: user.id,
             status: "active",
-          }
+            user: {
+              telegram_id: BigInt(telegram_id),
+            },
+          },
+          include: {
+            user: {
+              select: { id: true },
+            },
+          },
         })
 
         if (!bet) {
@@ -231,16 +229,25 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
         }
 
         const updatedUser = await tx.user.update({
-          where: { id: user.id },
+          where: { id: bet.user.id },
           data: {
             balance: { increment: payout },
             crash_wins: { increment: 1 },
-          }
+          },
+          select: {
+            balance: true,
+          },
         })
 
-        const updatedBet = await tx.crashBet.findUnique({
-          where: { id: bet.id },
-        })
+        const updatedBet = {
+          ...bet,
+          user: undefined,
+          status: "cashed_out",
+          cashout_multiplier: liveMultiplier,
+          payout,
+          profit,
+          cashed_out_at: cashedOutAt,
+        }
 
         return { updatedUser, updatedBet, payout, profit }
       })
@@ -269,7 +276,16 @@ function createCrashRoutes({ emitCrashState, emitCrashLive }) {
       })
     } catch (error) {
       console.error("CRASH CASHOUT ERROR:", error)
-      res.status(500).json({ error: error.message || "crash cashout error" })
+
+      const message = error.message || "crash cashout error"
+      const statusCode =
+        message === "Active bet not found" ||
+        message === "cashout is not available now" ||
+        message === "too late to cash out"
+          ? 400
+          : 500
+
+      res.status(statusCode).json({ error: message })
     }
   })
 
