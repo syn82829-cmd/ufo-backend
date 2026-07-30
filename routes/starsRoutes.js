@@ -1,4 +1,5 @@
 const express = require("express")
+const { getStarsDepositCredit } = require("../utils/starsDepositBonus")
 
 function createStarsRoutes() {
   const router = express.Router()
@@ -25,9 +26,13 @@ function createStarsRoutes() {
         })
       }
 
-      const numericAmount = Number(amount)
+      const numericAmount = Math.floor(Number(amount))
+      const credit = getStarsDepositCredit(numericAmount)
 
       const payload = `stars:${telegram_id}:${numericAmount}:${Date.now()}`
+      const bonusDescription = credit.bonusPercent > 0
+        ? ` с бонусом +${credit.bonusPercent}% — на баланс поступит ${credit.creditAmount} ⭐`
+        : ""
 
       const tgRes = await fetch(
         `https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`,
@@ -37,8 +42,8 @@ function createStarsRoutes() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: "UFO Balance Top-Up",
-            description: `Пополнение баланса на ${numericAmount} ⭐`,
+            title: "GIFTON Balance Top-Up",
+            description: `Пополнение на ${numericAmount} ⭐${bonusDescription}`,
             payload,
             provider_token: "",
             currency: "XTR",
@@ -63,6 +68,10 @@ function createStarsRoutes() {
 
       res.json({
         invoiceLink: data.result,
+        paidAmount: credit.paidAmount,
+        bonusPercent: credit.bonusPercent,
+        bonusAmount: credit.bonusAmount,
+        creditAmount: credit.creditAmount,
       })
     } catch (err) {
       console.error("STARS ROUTE ERROR:", err)
